@@ -15,6 +15,12 @@ const Appointments = () => {
   const [slotIndex, setSlotIndex] = useState(0);
   const [slotTime, setSlotTime] = useState('');
 
+  // states for Verify section
+  const [itemType, setItemType] = useState('');
+  const [location, setLocation] = useState('');
+  const [timeLost, setTimeLost] = useState('');
+  const [proofFile, setProofFile] = useState(null);
+
   const fetchDocInfo = async () => {
     const docInfo = doctors.find(doc => doc._id === docId);
     setDocInfo(docInfo);
@@ -90,21 +96,69 @@ const Appointments = () => {
             </p>
             <p className='text-sm text-gray-500 max-w-[700px] mt-1'>{docInfo.about}</p>
           </div>
-          <p className='text-gray-500 font-medium mt-4'>
-            Appointment fee: <span className='text-gray-600'>{currencySymbol}{docInfo.fees}</span>
-          </p>
+          
         </div>
       </div>
 
-      {/*---------Booking--------*/}
+      {/*---------Verify Section---------*/}
+      <div className='sm:ml-72 sm:pl-4 mt-6 font-medium text-gray-700'>
+        <p className='mb-3'>Verify</p>
+        
+        {/* Row 1 - Text Inputs */}
+        <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-4'>
+          <div>
+            <label className='block text-sm mb-1'>Type of Item</label>
+            <input
+              type='text'
+              value={itemType}
+              onChange={(e) => setItemType(e.target.value)}
+              placeholder='Enter item type'
+              className='w-full border border-gray-300 rounded-lg p-2'
+            />
+          </div>
+          <div>
+            <label className='block text-sm mb-1'>Location</label>
+            <input
+              type='text'
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder='Enter location'
+              className='w-full border border-gray-300 rounded-lg p-2'
+            />
+          </div>
+          <div>
+            <label className='block text-sm mb-1'>Time Lost</label>
+            <input
+              type='time'
+              value={timeLost}
+              onChange={(e) => setTimeLost(e.target.value)}
+              className='w-full border border-gray-300 rounded-lg p-2'
+            />
+          </div>
+        </div>
+
+        {/* Row 2 - File Upload */}
+        <div className='mb-6'>
+          <label className='block text-sm mb-1'>Upload Proof (Image/Media)</label>
+          <input
+            type='file'
+            accept='image/*,video/*'
+            className='w-full border border-gray-300 rounded-lg p-2 bg-white'
+            onChange={(e) => setProofFile(e.target.files[0])}
+          />
+          {proofFile && (
+            <p className='text-xs text-gray-500 mt-1'>Selected file: {proofFile.name}</p>
+          )}
+        </div>
+      </div>
+
+      {/*---------Booking Section---------*/}
       <div className='sm:ml-72 sm:pl-4 mt-4 font-medium text-gray-700'>
         <p>Booking slots</p>
         <div className='flex gap-3 items-center w-full overflow-x-scroll mt-4'>
           {
             docSlots.length && docSlots.map((item,index)=>(
               <div onClick={()=>setSlotIndex(index)} className={`text-center py-6 min-w-16 rounded-full cursor-pointer ${slotIndex === index ? 'bg-primary text-white' : 'border border-gray-200'}`}key={index}>
-
-
                   <p>{item[0]&& daysOfWeek[item[0].datetime.getDay()]}</p>
                   <p>{item[0] && item[0].datetime.getDate()}</p>
               </div>
@@ -118,7 +172,9 @@ const Appointments = () => {
             </p>
           ))}
         </div>
-        <button className='bg-primary text-white text-sm font-light px-14 py-3 rounded-full my-6'>Book an appointment</button>
+        <button className='bg-primary text-white text-sm font-light px-14 py-3 rounded-full my-6'>
+          Book an appointment
+        </button>
       </div>
 
       {/* Listing  */}

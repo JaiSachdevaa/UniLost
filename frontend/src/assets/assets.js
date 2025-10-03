@@ -60,27 +60,27 @@ export const assets = {
 
 export const specialityData = [
     {
-        speciality: 'General physician',
+        speciality: 'Mobile Phones',
         image: General_physician
     },
     {
-        speciality: 'Gynecologist',
+        speciality: 'Keys',
         image: Gynecologist
     },
     {
-        speciality: 'Dermatologist',
+        speciality: 'Notes & Books',
         image: Dermatologist
     },
     {
-        speciality: 'Pediatricians',
+        speciality: 'Lunches & Bottles',
         image: Pediatricians
     },
     {
-        speciality: 'Neurologist',
+        speciality: 'Wearables',
         image: Neurologist
     },
     {
-        speciality: 'Gastroenterologist',
+        speciality: 'Others',
         image: Gastroenterologist
     },
 ]
@@ -88,212 +88,212 @@ export const specialityData = [
 export const doctors = [
     {
         _id: 'doc1',
-        name: 'Dr. Richard James',
+        name: 'Lost iPhone 13',
         image: doc1,
-        speciality: 'General physician',
-        degree: 'MBBS',
-        experience: '4 Years',
-        about: 'Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies. Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies.',
-        fees: 50,
+        speciality: 'Mobile Phones',
+        degree: 'Apple',
+        experience: 'Lost 2 days ago',
+        about: 'A black iPhone 13 with a cracked screen, last seen near the library. Comes with a blue silicone case.',
+        fees: 0,
         address: {
-            line1: '17th Cross, Richmond',
-            line2: 'Circle, Ring Road, London'
+            line1: 'Library, Main Campus',
+            line2: 'Rajasthan Manipal University, Jaipur'
         }
     },
     {
         _id: 'doc2',
-        name: 'Dr. Emily Larson',
+        name: 'Set of Car Keys',
         image: doc2,
-        speciality: 'Gynecologist',
-        degree: 'MBBS',
-        experience: '3 Years',
-        about: 'Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies. Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies.',
-        fees: 60,
+        speciality: 'Keys',
+        degree: 'Honda',
+        experience: 'Lost yesterday',
+        about: 'A set of Honda car keys with a red keychain, lost in the cafeteria area.',
+        fees: 0,
         address: {
-            line1: '27th Cross, Richmond',
-            line2: 'Circle, Ring Road, London'
+            line1: 'Cafeteria, Block A',
+            line2: 'Rajasthan Manipal University, Jaipur'
         }
     },
     {
         _id: 'doc3',
-        name: 'Dr. Walter Smith',
+        name: 'Math Notebook',
         image: doc3,
-        speciality: 'Dermatologist',
-        degree: 'MBBS',
-        experience: '1 Years',
-        about: 'Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies. Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies.',
-        fees: 30,
+        speciality: 'Notes & Books',
+        degree: 'Spiral-bound',
+        experience: 'Lost 3 days ago',
+        about: 'A blue spiral notebook with handwritten math notes, last seen in Lecture Hall 2.',
+        fees: 0,
         address: {
-            line1: '37th Cross, Richmond',
-            line2: 'Circle, Ring Road, London'
+            line1: 'Lecture Hall 2',
+            line2: 'Rajasthan Manipal University, Jaipur'
         }
     },
     {
         _id: 'doc4',
-        name: 'Dr. Christopher Lee',
+        name: 'Water Bottle',
         image: doc4,
-        speciality: 'Pediatricians',
-        degree: 'MBBS',
-        experience: '2 Years',
-        about: 'Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies. Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies.',
-        fees: 40,
+        speciality: 'Lunches & Bottles',
+        degree: '500ml Stainless Steel',
+        experience: 'Lost today',
+        about: 'A silver stainless steel water bottle with a black lid, misplaced near the gym.',
+        fees: 0,
         address: {
-            line1: '47th Cross, Richmond',
-            line2: 'Circle, Ring Road, London'
+            line1: 'Gym Area',
+            line2: 'Rajasthan Manipal University, Jaipur'
         }
     },
     {
         _id: 'doc5',
-        name: 'Dr. Jennifer Garcia',
+        name: 'Smartwatch',
         image: doc5,
-        speciality: 'Neurologist',
-        degree: 'MBBS',
-        experience: '4 Years',
-        about: 'Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies. Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies.',
-        fees: 50,
+        speciality: 'Wearables',
+        degree: 'Apple Watch Series 7',
+        experience: 'Lost 1 day ago',
+        about: 'A black Apple Watch Series 7, last seen near the sports ground.',
+        fees: 0,
         address: {
-            line1: '57th Cross, Richmond',
-            line2: 'Circle, Ring Road, London'
+            line1: 'Sports Ground',
+            line2: 'Rajasthan Manipal University, Jaipur'
         }
     },
     {
         _id: 'doc6',
-        name: 'Dr. Andrew Williams',
+        name: 'Umbrella',
         image: doc6,
-        speciality: 'Neurologist',
-        degree: 'MBBS',
-        experience: '4 Years',
-        about: 'Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies. Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies.',
-        fees: 50,
+        speciality: 'Others',
+        degree: 'Foldable Black',
+        experience: 'Lost 4 days ago',
+        about: 'A black foldable umbrella with a wooden handle, lost near the main gate.',
+        fees: 0,
         address: {
-            line1: '57th Cross, Richmond',
-            line2: 'Circle, Ring Road, London'
+            line1: 'Main Gate',
+            line2: 'Rajasthan Manipal University, Jaipur'
         }
     },
     {
         _id: 'doc7',
-        name: 'Dr. Christopher Davis',
+        name: 'Lost Samsung Galaxy S21',
         image: doc7,
-        speciality: 'General physician',
-        degree: 'MBBS',
-        experience: '4 Years',
-        about: 'Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies. Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies.',
-        fees: 50,
+        speciality: 'Mobile Phones',
+        degree: 'Samsung',
+        experience: 'Lost 2 days ago',
+        about: 'A black Samsung Galaxy S21 with a red case, last seen near the cafeteria.',
+        fees: 0,
         address: {
-            line1: '17th Cross, Richmond',
-            line2: 'Circle, Ring Road, London'
+            line1: 'Cafeteria Area',
+            line2: 'Rajasthan Manipal University, Jaipur'
         }
     },
     {
         _id: 'doc8',
-        name: 'Dr. Timothy White',
+        name: 'House Keys',
         image: doc8,
-        speciality: 'Gynecologist',
-        degree: 'MBBS',
-        experience: '3 Years',
-        about: 'Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies. Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies.',
-        fees: 60,
+        speciality: 'Keys',
+        degree: 'Metal Key Set',
+        experience: 'Lost yesterday',
+        about: 'A bunch of house keys with a green keychain, misplaced near the library entrance.',
+        fees: 0,
         address: {
-            line1: '27th Cross, Richmond',
-            line2: 'Circle, Ring Road, London'
+            line1: 'Library Entrance',
+            line2: 'Rajasthan Manipal University, Jaipur'
         }
     },
     {
         _id: 'doc9',
-        name: 'Dr. Ava Mitchell',
+        name: 'Physics Textbook',
         image: doc9,
-        speciality: 'Dermatologist',
-        degree: 'MBBS',
-        experience: '1 Years',
-        about: 'Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies. Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies.',
-        fees: 30,
+        speciality: 'Notes & Books',
+        degree: 'Hardcover',
+        experience: 'Lost 3 days ago',
+        about: 'A hardcover physics textbook, blue cover, last seen in Lecture Hall 5.',
+        fees: 0,
         address: {
-            line1: '37th Cross, Richmond',
-            line2: 'Circle, Ring Road, London'
+            line1: 'Lecture Hall 5',
+            line2: 'Rajasthan Manipal University, Jaipur'
         }
     },
     {
         _id: 'doc10',
-        name: 'Dr. Jeffrey King',
+        name: 'Lunchbox',
         image: doc10,
-        speciality: 'Pediatricians',
-        degree: 'MBBS',
-        experience: '2 Years',
-        about: 'Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies. Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies.',
-        fees: 40,
+        speciality: 'Lunches & Bottles',
+        degree: 'Plastic Container',
+        experience: 'Lost today',
+        about: 'A red plastic lunchbox, last seen in the student lounge.',
+        fees: 0,
         address: {
-            line1: '47th Cross, Richmond',
-            line2: 'Circle, Ring Road, London'
+            line1: 'Student Lounge',
+            line2: 'Rajasthan Manipal University, Jaipur'
         }
     },
     {
         _id: 'doc11',
-        name: 'Dr. Zoe Kelly',
+        name: 'Fitness Tracker',
         image: doc11,
-        speciality: 'Gastroenterologist',
-        degree: 'MBBS',
-        experience: '4 Years',
-        about: 'Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies. Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies.',
-        fees: 50,
+        speciality: 'Wearables',
+        degree: 'Mi Band 6',
+        experience: 'Lost 1 day ago',
+        about: 'A black Mi Band 6 fitness tracker, misplaced near the sports ground.',
+        fees: 0,
         address: {
-            line1: '57th Cross, Richmond',
-            line2: 'Circle, Ring Road, London'
+            line1: 'Sports Ground',
+            line2: 'Rajasthan Manipal University, Jaipur'
         }
     },
     {
         _id: 'doc12',
-        name: 'Dr. Patrick Harris',
+        name: 'Sunglasses',
         image: doc12,
-        speciality: 'Neurologist',
-        degree: 'MBBS',
-        experience: '4 Years',
-        about: 'Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies. Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies.',
-        fees: 50,
+        speciality: 'Others',
+        degree: 'Ray-Ban Aviator',
+        experience: 'Lost 2 days ago',
+        about: 'A pair of Ray-Ban Aviator sunglasses, black frame, last seen near the parking lot.',
+        fees: 0,
         address: {
-            line1: '57th Cross, Richmond',
-            line2: 'Circle, Ring Road, London'
+            line1: 'Parking Lot',
+            line2: 'Rajasthan Manipal University, Jaipur'
         }
     },
     {
         _id: 'doc13',
-        name: 'Dr. Chloe Evans',
+        name: 'iPad Mini',
         image: doc13,
-        speciality: 'General physician',
-        degree: 'MBBS',
-        experience: '4 Years',
-        about: 'Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies. Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies.',
-        fees: 50,
+        speciality: 'Mobile Phones',
+        degree: 'Apple',
+        experience: 'Lost yesterday',
+        about: 'A space gray iPad Mini with a black cover, lost in Lecture Hall 3.',
+        fees: 0,
         address: {
-            line1: '17th Cross, Richmond',
-            line2: 'Circle, Ring Road, London'
+            line1: 'Lecture Hall 3',
+            line2: 'Rajasthan Manipal University, Jaipur'
         }
     },
     {
         _id: 'doc14',
-        name: 'Dr. Ryan Martinez',
+        name: 'USB Drive',
         image: doc14,
-        speciality: 'Gynecologist',
-        degree: 'MBBS',
-        experience: '3 Years',
-        about: 'Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies. Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies.',
-        fees: 60,
+        speciality: 'Others',
+        degree: '16GB SanDisk',
+        experience: 'Lost 1 day ago',
+        about: 'A 16GB SanDisk USB drive, blue color, last seen in the computer lab.',
+        fees: 0,
         address: {
-            line1: '27th Cross, Richmond',
-            line2: 'Circle, Ring Road, London'
+            line1: 'Computer Lab',
+            line2: 'Rajasthan Manipal University, Jaipur'
         }
     },
     {
         _id: 'doc15',
-        name: 'Dr. Amelia Hill',
+        name: 'Notebook Set',
         image: doc15,
-        speciality: 'Dermatologist',
-        degree: 'MBBS',
-        experience: '1 Years',
-        about: 'Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies. Dr. Davis has a strong commitment to delivering comprehensive medical care, focusing on preventive medicine, early diagnosis, and effective treatment strategies.',
-        fees: 30,
+        speciality: 'Notes & Books',
+        degree: 'Spiral Notebooks',
+        experience: 'Lost 3 days ago',
+        about: 'A set of three spiral notebooks, red, blue, and green, last seen in the library reading area.',
+        fees: 0,
         address: {
-            line1: '37th Cross, Richmond',
-            line2: 'Circle, Ring Road, London'
+            line1: 'Library Reading Area',
+            line2: 'Rajasthan Manipal University, Jaipur'
         }
-    },
+    }
 ]
