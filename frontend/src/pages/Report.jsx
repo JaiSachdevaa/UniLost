@@ -1,13 +1,17 @@
 import { useState } from "react";
+import api from "../config/api";
+import { useNavigate } from "react-router-dom";
 
 const Report = () => {
   const [formData, setFormData] = useState({
-    itemType: "",
+    item_type: "",
     location: "",
-    timeFound: "",
+    time_found: "",
     description: "",
     media: null,
   });
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
@@ -18,10 +22,43 @@ const Report = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Found Item Report Submitted:", formData);
-    alert("✅ Thank you for reporting the found item!");
+    
+    // Check if user is logged in
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Please login to submit a report');
+      navigate('/login');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const result = await api.submitReport(formData);
+      
+      if (result.success) {
+        alert("Thank you for reporting the found item!");
+        // Reset form
+        setFormData({
+          item_type: "",
+          location: "",
+          time_found: "",
+          description: "",
+          media: null,
+        });
+        // Reset file input
+        document.querySelector('input[type="file"]').value = '';
+      } else {
+        alert(result.message || "Failed to submit report");
+      }
+    } catch (error) {
+      console.error("Submit error:", error);
+      alert("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -29,7 +66,6 @@ const Report = () => {
       <h2 className="text-2xl font-semibold text-gray-800 mb-6">
         Report Found Item
       </h2>
-
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Type of Item */}
         <div>
@@ -38,8 +74,8 @@ const Report = () => {
           </label>
           <input
             type="text"
-            name="itemType"
-            value={formData.itemType}
+            name="item_type"
+            value={formData.item_type}
             onChange={handleChange}
             placeholder="e.g. Wallet, Phone, Bag"
             className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-primary focus:outline-none"
@@ -70,8 +106,8 @@ const Report = () => {
           </label>
           <input
             type="time"
-            name="timeFound"
-            value={formData.timeFound}
+            name="time_found"
+            value={formData.time_found}
             onChange={handleChange}
             className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-primary focus:outline-none"
             required
@@ -111,9 +147,10 @@ const Report = () => {
         {/* Submit */}
         <button
           type="submit"
-          className="w-full bg-primary text-white py-3 rounded-lg font-medium hover:scale-105 transition-transform duration-200"
+          disabled={loading}
+          className="w-full bg-primary text-white py-3 rounded-lg font-medium hover:scale-105 transition-transform duration-200 disabled:opacity-50"
         >
-          Submit Report
+          {loading ? 'Submitting...' : 'Submit Report'}
         </button>
       </form>
     </div>

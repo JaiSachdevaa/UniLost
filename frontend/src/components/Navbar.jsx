@@ -1,12 +1,18 @@
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { assets } from '../assets/assets';
+import { AppContext } from '../context/AppContext';
 
 const Navbar = () => {
   const navigate = useNavigate();
-
   const [showMenu, setShowMenu] = useState(false);
-  const [token, setToken] = useState(true);
+  const { token, setToken } = useContext(AppContext);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setToken(null);
+    navigate('/login');
+  };
 
   return (
     <div className='flex items-center justify-between text-sm py-4 mb-5 border-b border-b-gray-400'>
@@ -16,35 +22,29 @@ const Navbar = () => {
         src={assets.logo}
         alt=''
       />
-
       {/* Desktop Menu */}
       <ul className='hidden md:flex items-start gap-5 font-semibold'>
         <NavLink to='/'>
           <li className='py-1'>HOME</li>
           <hr className='border-none outline-none h-0.5 bg-primary w-3/5 m-auto hidden ' />
         </NavLink>
-
         <NavLink to='/doctors'>
           <li className='py-1'>ALL ITEMS</li>
           <hr className='border-none outline-none h-0.5 bg-primary w-3/5 m-auto hidden' />
         </NavLink>
-
         <NavLink to='/report'>
           <li className='py-1 '>REPORT ITEMS</li>
           <hr className='border-none outline-none h-0.5 bg-primary w-3/5 m-auto hidden' />
         </NavLink>
-
         <NavLink to='/about'>
           <li className='py-1'>ABOUT</li>
           <hr className='border-none outline-none h-0.5 bg-primary w-3/5 m-auto hidden' />
         </NavLink>
-
         <NavLink to='/contact'>
           <li className='py-1'>CONTACT</li>
           <hr className='border-none outline-none h-0.5 bg-primary w-3/5 m-auto hidden' />
         </NavLink>
       </ul>
-
       {/* Profile / Auth */}
       <div className='flex items-center gap-4'>
         {token ? (
@@ -66,7 +66,7 @@ const Navbar = () => {
                   My Appointments
                 </p>
                 <p
-                  onClick={() => setToken(false)}
+                  onClick={handleLogout}
                   className='hover:text-black cursor-pointer'
                 >
                   LogOut
