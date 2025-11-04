@@ -1,0 +1,6 @@
+node_modules/
+.env
+unilost.db
+uploads/
+*.log
+.DS_Store
