@@ -21,6 +21,62 @@ const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
+// Admin Login (No OTP)
+router.post('/admin-login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Email and password are required' 
+      });
+    }
+
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@muj.manipal.edu';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123456';
+
+    if (email.toLowerCase() !== adminEmail.toLowerCase()) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid admin credentials' 
+      });
+    }
+
+    if (password !== adminPassword) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid admin credentials' 
+      });
+    }
+
+    // Generate admin token with special flag
+    const token = jwt.sign({ 
+      userId: 0, 
+      email: adminEmail, 
+      isAdmin: true 
+    }, JWT_SECRET, { expiresIn: '7d' });
+
+    res.json({
+      success: true,
+      message: 'Admin login successful',
+      token,
+      user: {
+        id: 0,
+        name: 'Admin',
+        email: adminEmail,
+        isAdmin: true
+      }
+    });
+  } catch (error) {
+    console.error('Admin login error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Admin login failed' 
+    });
+  }
+});
+
 // Send OTP for registration
 router.post('/send-otp', async (req, res) => {
   try {
@@ -75,7 +131,6 @@ router.post('/send-otp', async (req, res) => {
   }
 });
 
-// Verify OTP and Register
 router.post('/verify-otp-register', async (req, res) => {
   try {
     const { email, otp, password, phone } = req.body;
@@ -158,7 +213,7 @@ router.post('/verify-otp-register', async (req, res) => {
   }
 });
 
-// Send OTP for password reset
+
 router.post('/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
@@ -212,7 +267,7 @@ router.post('/forgot-password', async (req, res) => {
   }
 });
 
-// Verify OTP and Reset Password
+
 router.post('/reset-password', async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
@@ -277,7 +332,6 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
-// Login user
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -335,7 +389,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Verify token middleware
+
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -359,9 +413,54 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// Get current user
+
+const authenticateAdmin = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ 
+      success: false, 
+      message: 'Access token required' 
+    });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Invalid or expired token' 
+      });
+    }
+    
+    if (!user.isAdmin) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Admin access required' 
+      });
+    }
+    
+    req.user = user;
+    next();
+  });
+};
+
+
 router.get('/me', authenticateToken, async (req, res) => {
   try {
+    
+    if (req.user.isAdmin) {
+      return res.json({
+        success: true,
+        user: {
+          id: 0,
+          name: 'Admin',
+          email: req.user.email,
+          isAdmin: true
+        }
+      });
+    }
+
     const user = await getOne(
       'SELECT id, name, email, phone, address_line1, address_line2, gender, dob, profile_image FROM users WHERE id = ?',
       [req.user.userId]
@@ -401,10 +500,9 @@ router.delete('/delete-account', authenticateToken, async (req, res) => {
 
     const userId = req.user.userId;
 
-    // Delete user's appointments
     await runQuery('DELETE FROM appointments WHERE user_id = ?', [userId]);
-
-    // Delete user account
+    await runQuery('DELETE FROM reports WHERE user_id = ?', [userId]);
+    await runQuery('DELETE FROM items WHERE reported_by = ?', [userId]);
     await runQuery('DELETE FROM users WHERE id = ?', [userId]);
 
     res.json({
@@ -422,3 +520,4 @@ router.delete('/delete-account', authenticateToken, async (req, res) => {
 
 module.exports = router;
 module.exports.authenticateToken = authenticateToken;
+module.exports.authenticateAdmin = authenticateAdmin;

@@ -152,7 +152,6 @@ router.put('/change-password', authenticateToken, async (req, res) => {
     
     const user = await getOne('SELECT * FROM users WHERE id = ?', [req.user.userId]);
     
-    
     const isValidPassword = await bcrypt.compare(currentPassword, user.password);
     if (!isValidPassword) {
       return res.status(401).json({ 
@@ -160,7 +159,6 @@ router.put('/change-password', authenticateToken, async (req, res) => {
         message: 'Current password is incorrect' 
       });
     }
-    
     
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     
@@ -193,36 +191,18 @@ router.post('/report', authenticateToken, reportUpload.single('media'), async (r
         message: 'All fields are required' 
       });
     }
-    
-    
+
     const mediaPath = req.file ? `/uploads/reports/${req.file.filename}` : null;
     
     
     const reportResult = await runQuery(
-      'INSERT INTO reports (user_id, item_type, location, time_found, description, media) VALUES (?, ?, ?, ?, ?, ?)',
+      'INSERT INTO reports (user_id, item_type, location, time_found, description, media, status) VALUES (?, ?, ?, ?, ?, ?, "pending")',
       [req.user.userId, item_type, location, time_found, description, mediaPath]
-    );
-    
-    
-    await runQuery(
-      `INSERT INTO items (name, speciality, image, degree, experience, about, address_line1, address_line2, status, reported_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'available', ?)`,
-      [
-        item_type, 
-        'Others', 
-        mediaPath || '/uploads/items/default.jpg', 
-        'Found Item', 
-        `Found at ${time_found}`, 
-        description, 
-        location,
-        '', 
-        req.user.userId 
-      ]
     );
     
     res.status(201).json({
       success: true,
-      message: 'Report submitted and item added to catalog successfully!',
+      message: 'Report submitted successfully! Admin will review it shortly.',
       reportId: reportResult.lastID
     });
   } catch (error) {
