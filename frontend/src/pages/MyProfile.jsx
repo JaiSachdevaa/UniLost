@@ -1,13 +1,18 @@
 import { useState, useEffect, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import { assets } from "../assets/assets";
 import api from "../config/api";
 import { AppContext } from "../context/AppContext";
 
 const MyProfile = () => {
-  const { user } = useContext(AppContext);
+  const { setToken, setUser } = useContext(AppContext);
+  const navigate = useNavigate();
   const [userData, setUserData] = useState(null);
   const [isEdit, setIsEdit] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Fetch user profile on mount
   useEffect(() => {
@@ -60,6 +65,43 @@ const MyProfile = () => {
     } catch (error) {
       console.error('Update error:', error);
       alert('Failed to update profile');
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'DELETE') {
+      alert('Please type DELETE to confirm');
+      return;
+    }
+
+    if (!window.confirm('Are you absolutely sure? This action cannot be undone. All your data will be permanently deleted.')) {
+      return;
+    }
+
+    setDeleteLoading(true);
+
+    try {
+      const result = await api.deleteAccount(deleteConfirmText);
+
+      if (result.success) {
+        alert('Your account has been permanently deleted.');
+        // Clear local storage
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setToken(null);
+        setUser(null);
+        // Redirect to home
+        navigate('/');
+      } else {
+        alert(result.message || 'Failed to delete account');
+      }
+    } catch (error) {
+      console.error('Delete account error:', error);
+      alert('Failed to delete account. Please try again.');
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteModal(false);
+      setDeleteConfirmText('');
     }
   };
 
@@ -184,7 +226,7 @@ const MyProfile = () => {
         </div>
       </div>
 
-      <div className="mt-10">
+      <div className="mt-10 flex gap-4">
         {isEdit ? (
           <button 
             className='border border-primary px-8 py-2 rounded-full hover:bg-primary hover:text-white transition-all'
@@ -201,6 +243,65 @@ const MyProfile = () => {
           </button>
         )}
       </div>
+
+      {/* Danger Zone */}
+      <div className="mt-10 border border-red-300 rounded-lg p-6 bg-red-50">
+        <p className="text-red-700 font-semibold text-lg mb-2">⚠️ Danger Zone</p>
+        <p className="text-red-600 text-sm mb-4">
+          Once you delete your account, there is no going back. This will permanently delete your account.
+        </p>
+        <button 
+          className='border border-red-600 text-red-600 px-6 py-2 rounded-full hover:bg-red-600 hover:text-white transition-all'
+          onClick={() => setShowDeleteModal(true)}
+        >
+          Delete Account
+        </button>
+      </div>
+
+      {/* Delete Account Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <h2 className="text-2xl font-bold text-red-600 mb-4">Delete Account</h2>
+            <p className="text-gray-700 mb-4">
+              This action <strong>cannot be undone</strong>. This will permanently delete:
+            </p>
+            <ul className="list-disc list-inside text-gray-600 mb-6 space-y-1">
+              <li>Your account and profile</li>
+              <li>All your appointments</li>
+            </ul>
+            <p className="text-gray-700 mb-4">
+              Please type <strong className="text-red-600">DELETE</strong> to confirm:
+            </p>
+            <input
+              type="text"
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder="Type DELETE"
+              className="w-full border border-gray-300 rounded px-4 py-2 mb-6 focus:ring-2 focus:ring-red-500 focus:outline-none"
+            />
+            <div className="flex gap-4">
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleteConfirmText !== 'DELETE' || deleteLoading}
+                className="flex-1 bg-red-600 text-white px-6 py-2 rounded-full hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                {deleteLoading ? 'Deleting...' : 'Delete My Account'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeleteConfirmText('');
+                }}
+                disabled={deleteLoading}
+                className="flex-1 border border-gray-300 px-6 py-2 rounded-full hover:bg-gray-100 disabled:opacity-50 transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

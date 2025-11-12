@@ -4,16 +4,16 @@ import api from "../config/api";
 import { AppContext } from "../context/AppContext";
 
 const Login = () => {
-  const [state, setState] = useState('Sign Up');
+  const [state, setState] = useState('Login'); // 'Login', 'Sign Up', 'Forgot Password'
   const [step, setStep] = useState(1); // 1: Email, 2: OTP
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const navigate = useNavigate();
   const { setToken, setUser } = useContext(AppContext);
@@ -22,7 +22,7 @@ const Login = () => {
     return email.toLowerCase().endsWith('@muj.manipal.edu');
   };
 
-  // Send OTP
+  // Send OTP for Registration
   const handleSendOTP = async (e) => {
     e.preventDefault();
     setError('');
@@ -43,12 +43,10 @@ const Login = () => {
       const result = await api.sendOTP({ email, name });
 
       if (result.success) {
-        setOtpSent(true);
         setStep(2);
-        setCountdown(600); // 10 minutes
+        setCountdown(600);
         alert('OTP sent to your email! Please check your inbox (and spam folder).');
         
-        // Start countdown
         const timer = setInterval(() => {
           setCountdown(prev => {
             if (prev <= 1) {
@@ -112,7 +110,85 @@ const Login = () => {
     }
   };
 
-  // Login (no OTP)
+  // Send OTP for Forgot Password
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (!validateEmail(email)) {
+      setError('Only @muj.manipal.edu email addresses are allowed');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const result = await api.forgotPassword({ email });
+
+      if (result.success) {
+        setStep(2);
+        setCountdown(600);
+        alert('Password reset OTP sent to your email!');
+        
+        const timer = setInterval(() => {
+          setCountdown(prev => {
+            if (prev <= 1) {
+              clearInterval(timer);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      } else {
+        setError(result.message || 'Failed to send OTP');
+      }
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      setError('Failed to send OTP. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Reset Password
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (otp.length !== 6) {
+      setError('Please enter a valid 6-digit OTP');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const result = await api.resetPassword({
+        email,
+        otp,
+        newPassword
+      });
+
+      if (result.success) {
+        alert('Password reset successful! You can now login with your new password.');
+        handleStateChange('Login');
+      } else {
+        setError(result.message || 'Password reset failed');
+      }
+    } catch (error) {
+      console.error('Reset password error:', error);
+      setError('Password reset failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Login
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
@@ -152,17 +228,17 @@ const Login = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Reset form when switching between Sign Up and Login
+  // Reset form when switching states
   const handleStateChange = (newState) => {
     setState(newState);
     setStep(1);
-    setOtpSent(false);
     setError('');
     setEmail('');
     setPassword('');
     setName('');
     setPhone('');
     setOtp('');
+    setNewPassword('');
     setCountdown(0);
   };
 
@@ -170,18 +246,21 @@ const Login = () => {
     <form 
       className='min-h-[80vh] flex items-center' 
       onSubmit={
-        state === 'Login' 
-          ? handleLogin 
-          : (step === 1 ? handleSendOTP : handleVerifyOTP)
+        state === 'Login' ? handleLogin :
+        state === 'Forgot Password' ? (step === 1 ? handleForgotPassword : handleResetPassword) :
+        (step === 1 ? handleSendOTP : handleVerifyOTP)
       }
     >
       <div className='flex flex-col gap-3 m-auto items-start p-8 min-w-[340px] sm:min-w-96 border rounded-xl text-zinc-600 text-sm shadow-lg'>
         <p className='text-2xl font-semibold'>
-          {state === 'Sign Up' ? "Create Account" : "Login"}
+          {state === 'Sign Up' ? "Create Account" : 
+           state === 'Forgot Password' ? "Reset Password" : "Login"}
         </p>
         <p>
           {state === 'Sign Up' 
             ? (step === 1 ? "Enter your details to get started" : "Enter the OTP sent to your email")
+            : state === 'Forgot Password'
+            ? (step === 1 ? "Enter your email to receive OTP" : "Enter OTP and new password")
             : "Please log in to access your account"}
         </p>
         
@@ -199,7 +278,7 @@ const Login = () => {
           </p>
         </div>
 
-        {/* Sign Up - Step 1: Send OTP */}
+        {/* Sign Up - Step 1 */}
         {state === 'Sign Up' && step === 1 && (
           <>
             <div className='w-full'>
@@ -236,7 +315,7 @@ const Login = () => {
           </>
         )}
 
-        {/* Sign Up - Step 2: Verify OTP */}
+        {/* Sign Up - Step 2 */}
         {state === 'Sign Up' && step === 2 && (
           <>
             {countdown > 0 && (
@@ -294,11 +373,95 @@ const Login = () => {
 
             <button 
               type="button"
-              onClick={() => {
-                setStep(1);
-                setOtpSent(false);
-                setOtp('');
-              }}
+              onClick={() => setStep(1)}
+              className='text-primary underline cursor-pointer text-sm'
+            >
+              ← Back to enter email
+            </button>
+          </>
+        )}
+
+        {/* Forgot Password - Step 1 */}
+        {state === 'Forgot Password' && step === 1 && (
+          <>
+            <div className='w-full'>
+              <p>Email</p>
+              <input
+                className='border border-zinc-300 rounded w-full p-2 mt-1'
+                type="email"
+                onChange={(e) => setEmail(e.target.value)}
+                value={email}
+                placeholder="yourname@muj.manipal.edu"
+                required
+              />
+            </div>
+
+            <button 
+              className='bg-primary text-white w-full py-2 rounded-md text-base disabled:opacity-50 hover:bg-opacity-90 transition-all'
+              disabled={loading}
+              type="submit"
+            >
+              {loading ? 'Sending OTP...' : 'Send Reset OTP'}
+            </button>
+
+            <button 
+              type="button"
+              onClick={() => handleStateChange('Login')}
+              className='text-primary underline cursor-pointer text-sm'
+            >
+              ← Back to login
+            </button>
+          </>
+        )}
+
+        {/* Forgot Password - Step 2 */}
+        {state === 'Forgot Password' && step === 2 && (
+          <>
+            {countdown > 0 && (
+              <div className='w-full bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded'>
+                <p className='text-sm'>
+                  ⏱️ OTP expires in: <strong>{formatTime(countdown)}</strong>
+                </p>
+              </div>
+            )}
+
+            <div className='w-full'>
+              <p>Enter OTP (Check your email)</p>
+              <input
+                className='border border-zinc-300 rounded w-full p-2 mt-1 text-center text-2xl tracking-widest'
+                type="text"
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                value={otp}
+                placeholder="000000"
+                maxLength="6"
+                required
+              />
+            </div>
+
+            <div className='w-full'>
+              <p>New Password</p>
+              <input
+                className='border border-zinc-300 rounded w-full p-2 mt-1'
+                type="password"
+                onChange={(e) => setNewPassword(e.target.value)}
+                value={newPassword}
+                placeholder="Enter new password (min 6 characters)"
+                required
+                minLength="6"
+              />
+            </div>
+
+            <button 
+              className='bg-primary text-white w-full py-2 rounded-md text-base disabled:opacity-50 hover:bg-opacity-90 transition-all'
+              disabled={loading || countdown === 0}
+              type="submit"
+            >
+              {loading ? 'Resetting...' : 'Reset Password'}
+            </button>
+
+            <button 
+              type="button"
+              onClick={() => setStep(1)}
               className='text-primary underline cursor-pointer text-sm'
             >
               ← Back to enter email
@@ -334,6 +497,14 @@ const Login = () => {
             </div>
 
             <button 
+              type="button"
+              onClick={() => handleStateChange('Forgot Password')}
+              className='text-primary underline cursor-pointer text-xs self-end'
+            >
+              Forgot Password?
+            </button>
+
+            <button 
               className='bg-primary text-white w-full py-2 rounded-md text-base disabled:opacity-50 hover:bg-opacity-90 transition-all'
               disabled={loading}
               type="submit"
@@ -343,7 +514,7 @@ const Login = () => {
           </>
         )}
 
-        {/* Toggle between Sign Up and Login */}
+        {/* Toggle between States */}
         {state === "Sign Up" ? (
           <p>
             Already have an account?
@@ -354,7 +525,7 @@ const Login = () => {
               Login here
             </span>
           </p>
-        ) : (
+        ) : state === "Login" && (
           <p>
             Create a new account?
             <span

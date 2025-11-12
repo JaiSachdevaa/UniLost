@@ -9,7 +9,7 @@ const getToken = () => {
 export const api = {
   // ========== Auth Endpoints ==========
   
-  // Send OTP to email
+  // Send OTP to email for registration
   sendOTP: async (data) => {
     const response = await fetch(`${API_BASE_URL}/auth/send-otp`, {
       method: 'POST',
@@ -29,9 +29,19 @@ export const api = {
     return response.json();
   },
 
-  // Old register (kept for backward compatibility, but not used anymore)
-  register: async (data) => {
-    const response = await fetch(`${API_BASE_URL}/auth/register`, {
+  // Send OTP for forgot password
+  forgotPassword: async (data) => {
+    const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return response.json();
+  },
+
+  // Reset password with OTP
+  resetPassword: async (data) => {
+    const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
@@ -55,6 +65,19 @@ export const api = {
       headers: {
         'Authorization': `Bearer ${getToken()}`
       }
+    });
+    return response.json();
+  },
+
+  // Delete user account
+  deleteAccount: async (confirmText) => {
+    const response = await fetch(`${API_BASE_URL}/auth/delete-account`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${getToken()}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ confirmText })
     });
     return response.json();
   },

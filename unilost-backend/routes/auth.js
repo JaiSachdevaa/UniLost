@@ -2,13 +2,14 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { runQuery, getOne } = require('../database');
-const { sendOTPEmail } = require('../emailService');
+const { sendOTPEmail, sendPasswordResetEmail } = require('../emailService');
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'unilost_secret_key_2025';
 
-// In-memory OTP storage (you can use Redis for production)
+// In-memory OTP storage
 const otpStore = new Map();
+const passwordResetOtpStore = new Map();
 
 // Email validation function
 const isValidMUJEmail = (email) => {
@@ -20,7 +21,7 @@ const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-// Send OTP endpoint
+// Send OTP for registration
 router.post('/send-otp', async (req, res) => {
   try {
     const { email, name } = req.body;
@@ -32,7 +33,6 @@ router.post('/send-otp', async (req, res) => {
       });
     }
 
-    // Validate MUJ email
     if (!isValidMUJEmail(email)) {
       return res.status(400).json({ 
         success: false, 
@@ -40,7 +40,6 @@ router.post('/send-otp', async (req, res) => {
       });
     }
 
-    // Check if user already exists
     const existingUser = await getOne('SELECT * FROM users WHERE email = ?', [email.toLowerCase()]);
     if (existingUser) {
       return res.status(400).json({ 
@@ -49,26 +48,23 @@ router.post('/send-otp', async (req, res) => {
       });
     }
 
-    // Generate OTP
     const otp = generateOTP();
-    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+    const expiresAt = Date.now() + 10 * 60 * 1000;
 
-    // Store OTP
     otpStore.set(email.toLowerCase(), {
       otp,
       expiresAt,
       name
     });
 
-    // Send OTP via email
     await sendOTPEmail(email, otp);
 
-    console.log(`📧 OTP sent to ${email}: ${otp}`); // For development - remove in production
+    console.log(`📧 Registration OTP sent to ${email}: ${otp}`);
 
     res.json({
       success: true,
       message: 'OTP sent to your email. Please check your inbox.',
-      expiresIn: 600 // 10 minutes in seconds
+      expiresIn: 600
     });
   } catch (error) {
     console.error('Send OTP error:', error);
@@ -91,7 +87,6 @@ router.post('/verify-otp-register', async (req, res) => {
       });
     }
 
-    // Get stored OTP
     const storedData = otpStore.get(email.toLowerCase());
 
     if (!storedData) {
@@ -101,7 +96,6 @@ router.post('/verify-otp-register', async (req, res) => {
       });
     }
 
-    // Check if OTP expired
     if (Date.now() > storedData.expiresAt) {
       otpStore.delete(email.toLowerCase());
       return res.status(400).json({ 
@@ -110,7 +104,6 @@ router.post('/verify-otp-register', async (req, res) => {
       });
     }
 
-    // Verify OTP
     if (storedData.otp !== otp) {
       return res.status(400).json({ 
         success: false, 
@@ -118,7 +111,6 @@ router.post('/verify-otp-register', async (req, res) => {
       });
     }
 
-    // Validate password length
     if (password.length < 6) {
       return res.status(400).json({ 
         success: false, 
@@ -126,7 +118,6 @@ router.post('/verify-otp-register', async (req, res) => {
       });
     }
 
-    // Check if user already exists (double check)
     const existingUser = await getOne('SELECT * FROM users WHERE email = ?', [email.toLowerCase()]);
     if (existingUser) {
       otpStore.delete(email.toLowerCase());
@@ -136,19 +127,15 @@ router.post('/verify-otp-register', async (req, res) => {
       });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insert user
     const result = await runQuery(
       'INSERT INTO users (name, email, password, phone) VALUES (?, ?, ?, ?)',
       [storedData.name, email.toLowerCase(), hashedPassword, phone]
     );
 
-    // Delete OTP after successful registration
     otpStore.delete(email.toLowerCase());
 
-    // Generate token
     const token = jwt.sign({ userId: result.lastID, email: email.toLowerCase() }, JWT_SECRET, { expiresIn: '7d' });
 
     res.status(201).json({
@@ -171,7 +158,126 @@ router.post('/verify-otp-register', async (req, res) => {
   }
 });
 
-// Login user (no OTP needed for login)
+// Send OTP for password reset
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Email is required' 
+      });
+    }
+
+    if (!isValidMUJEmail(email)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Only @muj.manipal.edu email addresses are allowed' 
+      });
+    }
+
+    const user = await getOne('SELECT * FROM users WHERE email = ?', [email.toLowerCase()]);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'No account found with this email address.' 
+      });
+    }
+
+    const otp = generateOTP();
+    const expiresAt = Date.now() + 10 * 60 * 1000;
+
+    passwordResetOtpStore.set(email.toLowerCase(), {
+      otp,
+      expiresAt,
+      userId: user.id
+    });
+
+    await sendPasswordResetEmail(email, otp);
+
+    console.log(`📧 Password reset OTP sent to ${email}: ${otp}`);
+
+    res.json({
+      success: true,
+      message: 'Password reset OTP sent to your email.',
+      expiresIn: 600
+    });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to send password reset OTP. Please try again.' 
+    });
+  }
+});
+
+// Verify OTP and Reset Password
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Email, OTP, and new password are required' 
+      });
+    }
+
+    const storedData = passwordResetOtpStore.get(email.toLowerCase());
+
+    if (!storedData) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'OTP expired or not found. Please request a new OTP.' 
+      });
+    }
+
+    if (Date.now() > storedData.expiresAt) {
+      passwordResetOtpStore.delete(email.toLowerCase());
+      return res.status(400).json({ 
+        success: false, 
+        message: 'OTP has expired. Please request a new OTP.' 
+      });
+    }
+
+    if (storedData.otp !== otp) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid OTP. Please try again.' 
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Password must be at least 6 characters long' 
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await runQuery(
+      'UPDATE users SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [hashedPassword, storedData.userId]
+    );
+
+    passwordResetOtpStore.delete(email.toLowerCase());
+
+    res.json({
+      success: true,
+      message: 'Password reset successful! You can now login with your new password.'
+    });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to reset password. Please try again.' 
+    });
+  }
+});
+
+// Login user
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -183,7 +289,6 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Validate MUJ email
     if (!isValidMUJEmail(email)) {
       return res.status(400).json({ 
         success: false, 
@@ -191,7 +296,6 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Find user
     const user = await getOne('SELECT * FROM users WHERE email = ?', [email.toLowerCase()]);
     if (!user) {
       return res.status(401).json({ 
@@ -200,7 +304,6 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
       return res.status(401).json({ 
@@ -209,7 +312,6 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Generate token
     const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
 
     res.json({
@@ -281,6 +383,39 @@ router.get('/me', authenticateToken, async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'Failed to fetch user data' 
+    });
+  }
+});
+
+// Delete account
+router.delete('/delete-account', authenticateToken, async (req, res) => {
+  try {
+    const { confirmText } = req.body;
+
+    if (confirmText !== 'DELETE') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Please type DELETE to confirm account deletion' 
+      });
+    }
+
+    const userId = req.user.userId;
+
+    // Delete user's appointments
+    await runQuery('DELETE FROM appointments WHERE user_id = ?', [userId]);
+
+    // Delete user account
+    await runQuery('DELETE FROM users WHERE id = ?', [userId]);
+
+    res.json({
+      success: true,
+      message: 'Your account has been permanently deleted.'
+    });
+  } catch (error) {
+    console.error('Delete account error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to delete account. Please try again.' 
     });
   }
 });
