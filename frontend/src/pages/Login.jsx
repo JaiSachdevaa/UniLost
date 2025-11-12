@@ -4,8 +4,8 @@ import api from "../config/api";
 import { AppContext } from "../context/AppContext";
 
 const Login = () => {
-  const [state, setState] = useState('Login'); // 'Login', 'Sign Up', 'Forgot Password'
-  const [step, setStep] = useState(1); // 1: Email, 2: OTP
+  const [state, setState] = useState('Login'); 
+  const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -188,7 +188,36 @@ const Login = () => {
     }
   };
 
-  // Login
+  // Admin Login
+  const handleAdminLogin = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    setLoading(true);
+
+    try {
+      const result = await api.adminLogin({ email, password });
+
+      if (result.success) {
+        localStorage.setItem('token', result.token);
+        localStorage.setItem('isAdmin', 'true');
+        setToken(result.token);
+        setUser(result.user);
+        
+        alert('Admin login successful!');
+        navigate('/admin');
+      } else {
+        setError(result.message || 'Admin login failed');
+      }
+    } catch (error) {
+      console.error('Admin login error:', error);
+      setError('Admin login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Regular Login
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
@@ -247,6 +276,7 @@ const Login = () => {
       className='min-h-[80vh] flex items-center' 
       onSubmit={
         state === 'Login' ? handleLogin :
+        state === 'Admin Login' ? handleAdminLogin :
         state === 'Forgot Password' ? (step === 1 ? handleForgotPassword : handleResetPassword) :
         (step === 1 ? handleSendOTP : handleVerifyOTP)
       }
@@ -254,13 +284,16 @@ const Login = () => {
       <div className='flex flex-col gap-3 m-auto items-start p-8 min-w-[340px] sm:min-w-96 border rounded-xl text-zinc-600 text-sm shadow-lg'>
         <p className='text-2xl font-semibold'>
           {state === 'Sign Up' ? "Create Account" : 
-           state === 'Forgot Password' ? "Reset Password" : "Login"}
+           state === 'Forgot Password' ? "Reset Password" : 
+           state === 'Admin Login' ? "Admin Login" : "Login"}
         </p>
         <p>
           {state === 'Sign Up' 
             ? (step === 1 ? "Enter your details to get started" : "Enter the OTP sent to your email")
             : state === 'Forgot Password'
             ? (step === 1 ? "Enter your email to receive OTP" : "Enter OTP and new password")
+            : state === 'Admin Login'
+            ? "Enter admin credentials"
             : "Please log in to access your account"}
         </p>
         
@@ -271,12 +304,14 @@ const Login = () => {
           </div>
         )}
 
-        {/* Info Message */}
-        <div className='w-full bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded'>
-          <p className='text-xs'>
-            <strong>Note:</strong> Only Manipal University Jaipur email addresses (@muj.manipal.edu) are allowed.
-          </p>
-        </div>
+        {/* Info Message (not for admin) */}
+        {state !== 'Admin Login' && (
+          <div className='w-full bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded'>
+            <p className='text-xs'>
+              <strong>Note:</strong> Only Manipal University Jaipur email addresses (@muj.manipal.edu) are allowed.
+            </p>
+          </div>
+        )}
 
         {/* Sign Up - Step 1 */}
         {state === 'Sign Up' && step === 1 && (
@@ -469,7 +504,58 @@ const Login = () => {
           </>
         )}
 
-        {/* Login Form */}
+        {/* Admin Login Form */}
+        {state === 'Admin Login' && (
+          <>
+            <div className='w-full bg-orange-50 border border-orange-200 text-orange-700 px-4 py-3 rounded'>
+              <p className='text-xs'>
+                <strong>⚠️ Admin Access:</strong> For authorized personnel only.
+              </p>
+            </div>
+
+            <div className='w-full'>
+              <p>Admin Email</p>
+              <input
+                className='border border-zinc-300 rounded w-full p-2 mt-1'
+                type="email"
+                onChange={(e) => setEmail(e.target.value)}
+                value={email}
+                placeholder="admin@muj.manipal.edu"
+                required
+              />
+            </div>
+
+            <div className='w-full'>
+              <p>Admin Password</p>
+              <input
+                className='border border-zinc-300 rounded w-full p-2 mt-1'
+                type="password"
+                onChange={(e) => setPassword(e.target.value)}
+                value={password}
+                placeholder="Enter admin password"
+                required
+              />
+            </div>
+
+            <button 
+              className='bg-orange-600 text-white w-full py-2 rounded-md text-base disabled:opacity-50 hover:bg-opacity-90 transition-all'
+              disabled={loading}
+              type="submit"
+            >
+              {loading ? 'Logging in...' : 'Admin Login'}
+            </button>
+
+            <button 
+              type="button"
+              onClick={() => handleStateChange('Login')}
+              className='text-primary underline cursor-pointer text-sm'
+            >
+              ← Back to user login
+            </button>
+          </>
+        )}
+
+        {/* Regular Login Form */}
         {state === 'Login' && (
           <>
             <div className='w-full'>
@@ -510,6 +596,14 @@ const Login = () => {
               type="submit"
             >
               {loading ? 'Logging in...' : 'Login'}
+            </button>
+
+            <button 
+              type="button"
+              onClick={() => handleStateChange('Admin Login')}
+              className='w-full text-orange-600 underline cursor-pointer text-sm'
+            >
+              🔐 Admin Login
             </button>
           </>
         )}

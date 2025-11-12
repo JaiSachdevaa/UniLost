@@ -59,6 +59,16 @@ export const api = {
     return response.json();
   },
 
+  // Admin login (NEW)
+  adminLogin: async (data) => {
+    const response = await fetch(`${API_BASE_URL}/auth/admin-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return response.json();
+  },
+
   // Get current logged-in user
   getCurrentUser: async () => {
     const response = await fetch(`${API_BASE_URL}/auth/me`, {
@@ -78,6 +88,92 @@ export const api = {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ confirmText })
+    });
+    return response.json();
+  },
+
+  // ========== Admin Endpoints (NEW) ==========
+  
+  // Get all pending reports
+  getPendingReports: async () => {
+    const response = await fetch(`${API_BASE_URL}/admin/reports/pending`, {
+      headers: {
+        'Authorization': `Bearer ${getToken()}`
+      }
+    });
+    return response.json();
+  },
+
+  // Get all reports
+  getAllReports: async () => {
+    const response = await fetch(`${API_BASE_URL}/admin/reports/all`, {
+      headers: {
+        'Authorization': `Bearer ${getToken()}`
+      }
+    });
+    return response.json();
+  },
+
+  // Approve report
+  approveReport: async (reportId) => {
+    const response = await fetch(`${API_BASE_URL}/admin/reports/${reportId}/approve`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${getToken()}`
+      }
+    });
+    return response.json();
+  },
+
+  // Reject report
+  rejectReport: async (reportId) => {
+    const response = await fetch(`${API_BASE_URL}/admin/reports/${reportId}/reject`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${getToken()}`
+      }
+    });
+    return response.json();
+  },
+
+  // Delete report
+  deleteReport: async (reportId) => {
+    const response = await fetch(`${API_BASE_URL}/admin/reports/${reportId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${getToken()}`
+      }
+    });
+    return response.json();
+  },
+
+  // Get all items (admin)
+  getAdminItems: async () => {
+    const response = await fetch(`${API_BASE_URL}/admin/items`, {
+      headers: {
+        'Authorization': `Bearer ${getToken()}`
+      }
+    });
+    return response.json();
+  },
+
+  // Delete item (admin)
+  deleteAdminItem: async (itemId) => {
+    const response = await fetch(`${API_BASE_URL}/admin/items/${itemId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${getToken()}`
+      }
+    });
+    return response.json();
+  },
+
+  // Get admin dashboard stats
+  getAdminStats: async () => {
+    const response = await fetch(`${API_BASE_URL}/admin/stats`, {
+      headers: {
+        'Authorization': `Bearer ${getToken()}`
+      }
     });
     return response.json();
   },
