@@ -11,6 +11,8 @@ const Report = () => {
     media: null,
   });
   const [loading, setLoading] = useState(false);
+  // NEW: state for image validation error
+  const [imageError, setImageError] = useState("");
   const navigate = useNavigate();
 
   // Fixed categories
@@ -27,6 +29,8 @@ const Report = () => {
     const { name, value, files } = e.target;
     if (files) {
       setFormData({ ...formData, [name]: files[0] });
+      // Clear image error as soon as a file is selected
+      setImageError("");
     } else {
       setFormData({ ...formData, [name]: value });
     }
@@ -42,10 +46,15 @@ const Report = () => {
       return;
     }
 
+    // NEW: Frontend validation — image is mandatory
+    if (!formData.media) {
+      setImageError("Please upload an image of the lost item before submitting.");
+      return;
+    }
+
     setLoading(true);
     try {
       const result = await api.submitReport(formData);
-
       if (result.success) {
         alert("✅ Report submitted successfully! Admin will review it shortly.");
         setFormData({
@@ -55,6 +64,7 @@ const Report = () => {
           description: "",
           media: null,
         });
+        setImageError("");
         document.querySelector('input[type="file"]').value = "";
       } else {
         alert(result.message || "Failed to submit report");
@@ -141,18 +151,29 @@ const Report = () => {
           ></textarea>
         </div>
 
-        {/* Media Upload */}
+        {/* Media Upload — NOW REQUIRED */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Upload Image/Video (optional)
+            Upload Image <span className="text-red-500">*</span>
           </label>
           <input
             type="file"
             name="media"
             accept="image/*,video/*"
             onChange={handleChange}
-            className="w-full border border-gray-300 rounded-lg p-3 cursor-pointer focus:ring-2 focus:ring-primary focus:outline-none"
+            className={`w-full border rounded-lg p-3 cursor-pointer focus:ring-2 focus:ring-primary focus:outline-none ${
+              imageError ? "border-red-500 bg-red-50" : "border-gray-300"
+            }`}
           />
+          {/* NEW: Show error message if no image uploaded */}
+          {imageError && (
+            <p className="mt-1 text-sm text-red-600">{imageError}</p>
+          )}
+          {formData.media && !imageError && (
+            <p className="text-xs text-gray-500 mt-1">
+              Selected file: {formData.media.name}
+            </p>
+          )}
         </div>
 
         {/* Submit */}

@@ -72,11 +72,9 @@ router.get('/profile', authenticateToken, async (req, res) => {
       'SELECT id, name, email, phone, address_line1, address_line2, gender, dob, profile_image FROM users WHERE id = ?',
       [req.user.userId]
     );
-
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
-
     res.json({ success: true, user });
   } catch (error) {
     console.error('Get profile error:', error);
@@ -88,12 +86,10 @@ router.get('/profile', authenticateToken, async (req, res) => {
 router.put('/profile', authenticateToken, async (req, res) => {
   try {
     const { name, phone, address_line1, address_line2, gender, dob } = req.body;
-
     const user = await getOne('SELECT * FROM users WHERE id = ?', [req.user.userId]);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
-
     await runQuery(
       `UPDATE users 
        SET name = ?, phone = ?, address_line1 = ?, address_line2 = ?, 
@@ -101,12 +97,10 @@ router.put('/profile', authenticateToken, async (req, res) => {
        WHERE id = ?`,
       [name || user.name, phone, address_line1, address_line2, gender, dob, req.user.userId]
     );
-
     const updatedUser = await getOne(
       'SELECT id, name, email, phone, address_line1, address_line2, gender, dob, profile_image FROM users WHERE id = ?',
       [req.user.userId]
     );
-
     res.json({
       success: true,
       message: 'Profile updated successfully',
@@ -118,23 +112,19 @@ router.put('/profile', authenticateToken, async (req, res) => {
   }
 });
 
-// ✅ NEW: Upload / change profile image
+// Upload / change profile image
 router.put('/profile/image', authenticateToken, upload.single('profile_image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'No image uploaded' });
     }
-
     const user = await getOne('SELECT profile_image FROM users WHERE id = ?', [req.user.userId]);
     const newImagePath = `/uploads/profiles/${req.file.filename}`;
-
     // Delete old profile image if it exists
     if (user && user.profile_image && fs.existsSync(`.${user.profile_image}`)) {
       fs.unlinkSync(`.${user.profile_image}`);
     }
-
     await runQuery('UPDATE users SET profile_image = ? WHERE id = ?', [newImagePath, req.user.userId]);
-
     res.json({
       success: true,
       message: 'Profile image updated successfully',
@@ -150,23 +140,19 @@ router.put('/profile/image', authenticateToken, upload.single('profile_image'), 
 router.put('/change-password', authenticateToken, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-
     if (!currentPassword || !newPassword) {
       return res.status(400).json({ success: false, message: 'Current and new passwords required' });
     }
-
     const user = await getOne('SELECT * FROM users WHERE id = ?', [req.user.userId]);
     const isValidPassword = await bcrypt.compare(currentPassword, user.password);
     if (!isValidPassword) {
       return res.status(401).json({ success: false, message: 'Incorrect current password' });
     }
-
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await runQuery('UPDATE users SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [
       hashedPassword,
       req.user.userId,
     ]);
-
     res.json({ success: true, message: 'Password changed successfully' });
   } catch (error) {
     console.error('Change password error:', error);
@@ -175,6 +161,7 @@ router.put('/change-password', authenticateToken, async (req, res) => {
 });
 
 // Submit found item report
+// CHANGED: image (media) is now REQUIRED — reject request if no image is uploaded
 router.post('/report', authenticateToken, reportUpload.single('media'), async (req, res) => {
   try {
     const { item_type, location, time_found, description } = req.body;
@@ -183,7 +170,15 @@ router.post('/report', authenticateToken, reportUpload.single('media'), async (r
       return res.status(400).json({ success: false, message: 'All fields are required' });
     }
 
-    const mediaPath = req.file ? `/uploads/reports/${req.file.filename}` : null;
+    // NEW: Validate that an image was uploaded
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please upload an image of the lost item before submitting.',
+      });
+    }
+
+    const mediaPath = `/uploads/reports/${req.file.filename}`;
 
     const reportResult = await runQuery(
       'INSERT INTO reports (user_id, item_type, location, time_found, description, media, status) VALUES (?, ?, ?, ?, ?, ?, "pending")',
