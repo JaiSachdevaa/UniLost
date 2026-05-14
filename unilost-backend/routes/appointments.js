@@ -3,7 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { runQuery, getOne, getAll } = require('../database');
-const { authenticateToken } = require('./auth');
+const { authenticateToken, authenticateAdmin } = require('./auth');
 
 const router = express.Router();
 
@@ -56,8 +56,7 @@ router.post('/', authenticateToken, upload.single('proofFile'), async (req, res)
       });
     }
 
-    // ── FEATURE 6: Enforce max 2 appointments per user per calendar day ──────
-    // Count today's non-cancelled appointments for this user
+    // Enforce max 2 appointments per user per calendar day
     const todayCount = await getOne(
       `SELECT COUNT(*) as count
        FROM appointments
@@ -73,7 +72,6 @@ router.post('/', authenticateToken, upload.single('proofFile'), async (req, res)
         message: 'You have reached the maximum limit of 2 appointments for today.'
       });
     }
-    // ─────────────────────────────────────────────────────────────────────────
 
     const proofFilePath = req.file ? `/uploads/proofs/${req.file.filename}` : null;
 
@@ -91,120 +89,98 @@ router.post('/', authenticateToken, upload.single('proofFile'), async (req, res)
     });
   } catch (error) {
     console.error('Book appointment error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to book appointment'
-    });
+    res.status(500).json({ success: false, message: 'Failed to book appointment' });
   }
 });
 
-// ── GET /my-appointments — fetch own appointments ────────────────────────────
+// ── GET /my-appointments ─────────────────────────────────────────────────────
+// CHANGED: now JOINs the finder (reported_by user) so the requester can see
+// the finder's name, email and phone on their appointments page.
 router.get('/my-appointments', authenticateToken, async (req, res) => {
   try {
     const appointments = await getAll(
       `SELECT
         a.*,
-        i.name as item_name,
-        i.image as item_image,
+        i.name        AS item_name,
+        i.image       AS item_image,
         i.speciality,
         i.address_line1,
-        i.address_line2
+        i.address_line2,
+        -- Finder details (the person who reported the found item)
+        finder.name   AS finder_name,
+        finder.email  AS finder_email,
+        finder.phone  AS finder_phone
        FROM appointments a
-       JOIN items i ON a.item_id = i.id
+       JOIN items i       ON a.item_id   = i.id
+       LEFT JOIN users finder ON i.reported_by = finder.id
        WHERE a.user_id = ?
        ORDER BY a.created_at DESC`,
       [req.user.userId]
     );
 
-    res.json({
-      success: true,
-      count: appointments.length,
-      appointments
-    });
+    res.json({ success: true, count: appointments.length, appointments });
   } catch (error) {
     console.error('Get appointments error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch appointments'
-    });
+    res.status(500).json({ success: false, message: 'Failed to fetch appointments' });
   }
 });
 
-// ── GET /:id — get single appointment ────────────────────────────────────────
-// FEATURE 4: Requester name and phone are hidden unless proof_file is present
+// ── GET /:id — single appointment (privacy masking) ──────────────────────────
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const appointment = await getOne(
       `SELECT
         a.*,
-        i.name as item_name,
-        i.image as item_image,
+        i.name        AS item_name,
+        i.image       AS item_image,
         i.speciality,
         i.address_line1,
         i.address_line2,
-        u.name as user_name,
-        u.email as user_email,
-        u.phone as user_phone
+        u.name        AS user_name,
+        u.email       AS user_email,
+        u.phone       AS user_phone,
+        finder.name   AS finder_name,
+        finder.email  AS finder_email,
+        finder.phone  AS finder_phone
        FROM appointments a
-       JOIN items i ON a.item_id = i.id
-       JOIN users u ON a.user_id = u.id
+       JOIN items i          ON a.item_id   = i.id
+       JOIN users u          ON a.user_id   = u.id
+       LEFT JOIN users finder ON i.reported_by = finder.id
        WHERE a.id = ?`,
       [req.params.id]
     );
 
     if (!appointment) {
-      return res.status(404).json({
-        success: false,
-        message: 'Appointment not found'
-      });
+      return res.status(404).json({ success: false, message: 'Appointment not found' });
     }
 
-    // ── FEATURE 4: Privacy — mask name & phone until proof is uploaded ───────
+    // Privacy: mask requester contact until proof is uploaded
     const proofUploaded = !!appointment.proof_file;
-
     const safeAppointment = {
       ...appointment,
       user_name:  proofUploaded ? appointment.user_name  : '🔒 Hidden until proof is uploaded',
       user_phone: proofUploaded ? appointment.user_phone : '🔒 Hidden until proof is uploaded',
     };
-    // ─────────────────────────────────────────────────────────────────────────
 
-    res.json({
-      success: true,
-      appointment: safeAppointment,
-      contactRevealed: proofUploaded
-    });
+    res.json({ success: true, appointment: safeAppointment, contactRevealed: proofUploaded });
   } catch (error) {
     console.error('Get appointment error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch appointment'
-    });
+    res.status(500).json({ success: false, message: 'Failed to fetch appointment' });
   }
 });
 
-// ── PUT /:id/status — update status ─────────────────────────────────────────
+// ── PUT /:id/status ───────────────────────────────────────────────────────────
 router.put('/:id/status', authenticateToken, async (req, res) => {
   try {
     const { status } = req.body;
 
     if (!['pending', 'confirmed', 'completed', 'cancelled'].includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid status value'
-      });
+      return res.status(400).json({ success: false, message: 'Invalid status value' });
     }
 
-    const appointment = await getOne(
-      'SELECT * FROM appointments WHERE id = ?',
-      [req.params.id]
-    );
-
+    const appointment = await getOne('SELECT * FROM appointments WHERE id = ?', [req.params.id]);
     if (!appointment) {
-      return res.status(404).json({
-        success: false,
-        message: 'Appointment not found'
-      });
+      return res.status(404).json({ success: false, message: 'Appointment not found' });
     }
 
     await runQuery(
@@ -213,26 +189,17 @@ router.put('/:id/status', authenticateToken, async (req, res) => {
     );
 
     if (status === 'completed') {
-      await runQuery(
-        'UPDATE items SET status = "claimed" WHERE id = ?',
-        [appointment.item_id]
-      );
+      await runQuery('UPDATE items SET status = "claimed" WHERE id = ?', [appointment.item_id]);
     }
 
-    res.json({
-      success: true,
-      message: 'Appointment status updated successfully'
-    });
+    res.json({ success: true, message: 'Appointment status updated successfully' });
   } catch (error) {
     console.error('Update appointment status error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update appointment status'
-    });
+    res.status(500).json({ success: false, message: 'Failed to update appointment status' });
   }
 });
 
-// ── DELETE /:id — cancel appointment ────────────────────────────────────────
+// ── DELETE /:id — user cancels/deletes their own appointment ─────────────────
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const appointment = await getOne(
@@ -241,27 +208,65 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     );
 
     if (!appointment) {
-      return res.status(404).json({
-        success: false,
-        message: 'Appointment not found or unauthorized'
-      });
+      return res.status(404).json({ success: false, message: 'Appointment not found or unauthorized' });
     }
 
-    await runQuery(
-      'UPDATE appointments SET status = "cancelled", updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    await runQuery('DELETE FROM appointments WHERE id = ?', [req.params.id]);
+
+    res.json({ success: true, message: 'Appointment deleted successfully' });
+  } catch (error) {
+    console.error('Delete appointment error:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete appointment' });
+  }
+});
+
+// ── DELETE /admin/appointments/:id — admin hard-deletes any appointment ───────
+router.delete('/admin/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const appointment = await getOne(
+      'SELECT * FROM appointments WHERE id = ?',
       [req.params.id]
     );
 
-    res.json({
-      success: true,
-      message: 'Appointment cancelled successfully'
-    });
+    if (!appointment) {
+      return res.status(404).json({ success: false, message: 'Appointment not found' });
+    }
+
+    await runQuery('DELETE FROM appointments WHERE id = ?', [req.params.id]);
+
+    res.json({ success: true, message: 'Appointment deleted by admin successfully' });
   } catch (error) {
-    console.error('Cancel appointment error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to cancel appointment'
-    });
+    console.error('Admin delete appointment error:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete appointment' });
+  }
+});
+
+// ── GET /admin/all — admin sees all appointments ──────────────────────────────
+router.get('/admin/all', authenticateAdmin, async (req, res) => {
+  try {
+    const appointments = await getAll(
+      `SELECT
+        a.*,
+        i.name       AS item_name,
+        i.image      AS item_image,
+        i.speciality,
+        u.name       AS user_name,
+        u.email      AS user_email,
+        u.phone      AS user_phone,
+        finder.name  AS finder_name,
+        finder.email AS finder_email,
+        finder.phone AS finder_phone
+       FROM appointments a
+       JOIN items i          ON a.item_id   = i.id
+       JOIN users u          ON a.user_id   = u.id
+       LEFT JOIN users finder ON i.reported_by = finder.id
+       ORDER BY a.created_at DESC`
+    );
+
+    res.json({ success: true, count: appointments.length, appointments });
+  } catch (error) {
+    console.error('Get all appointments error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch appointments' });
   }
 });
 
