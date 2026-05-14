@@ -18,7 +18,6 @@ const MyAppointments = () => {
         setLoading(false);
       }
     };
-
     fetchAppointments();
   }, []);
 
@@ -28,13 +27,11 @@ const MyAppointments = () => {
         const result = await api.cancelAppointment(id);
         if (result.success) {
           alert('Appointment cancelled successfully');
-          // Refresh appointments
           setAppointments(appointments.filter(apt => apt.id !== id));
         } else {
           alert(result.message || 'Failed to cancel appointment');
         }
-      } catch (error) {
-        console.error('Cancel error:', error);
+      } catch {
         alert('Failed to cancel appointment');
       }
     }
@@ -47,20 +44,26 @@ const MyAppointments = () => {
   return (
     <div>
       <p className="pb-3 mt-12 font-medium text-zinc-700 border-b">My Appointments</p>
-      
+
       {appointments.length === 0 ? (
         <p className="text-gray-500 text-center py-10">No appointments yet</p>
       ) : (
         <div>
           {appointments.map((item) => (
-            <div className='grid grid-cols-[1fr_2fr] gap-4 sm:flex sm:gap-6 py-2 border-b' key={item.id}>
+            <div
+              className='grid grid-cols-[1fr_2fr] gap-4 sm:flex sm:gap-6 py-4 border-b'
+              key={item.id}
+            >
+              {/* Item image */}
               <div>
-                <img 
-                  className="w-32 bg-indigo-50" 
-                  src={`http://localhost:5000${item.item_image}`} 
-                  alt={item.item_name} 
+                <img
+                  className="w-32 bg-indigo-50"
+                  src={`http://localhost:5000${item.item_image}`}
+                  alt={item.item_name}
                 />
               </div>
+
+              {/* Item + appointment details */}
               <div className="flex-1 text-sm text-zinc-600">
                 <p className="text-neutral-800 font-semibold">{item.item_name}</p>
                 <p>{item.speciality}</p>
@@ -68,28 +71,43 @@ const MyAppointments = () => {
                 <p className="text-xs">{item.address_line1}</p>
                 <p className="text-xs">{item.address_line2}</p>
                 <p className="text-xs mt-1">
-                  <span className="text-sm text-neutral-700 font-medium">Date & Time:</span> {item.appointment_date} | {item.appointment_time}
+                  <span className="text-sm text-neutral-700 font-medium">Date & Time:</span>{' '}
+                  {item.appointment_date} | {item.appointment_time}
                 </p>
                 <p className="text-xs mt-1">
-                  <span className="text-sm text-neutral-700 font-medium">Status:</span> 
-                  <span className={`ml-2 px-2 py-1 rounded ${
-                    item.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    item.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                    item.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                    'bg-blue-100 text-blue-800'
+                  <span className="text-sm text-neutral-700 font-medium">Status:</span>
+                  <span className={`ml-2 px-2 py-1 rounded text-xs ${
+                    item.status === 'pending'   ? 'bg-yellow-100 text-yellow-800' :
+                    item.status === 'confirmed' ? 'bg-green-100 text-green-800'  :
+                    item.status === 'cancelled' ? 'bg-red-100 text-red-800'      :
+                                                  'bg-blue-100 text-blue-800'
                   }`}>
                     {item.status}
                   </span>
                 </p>
+
+                {/* FEATURE 4: Privacy notice — proof upload status */}
+                <div className={`mt-2 px-3 py-2 rounded text-xs inline-flex items-center gap-1 ${
+                  item.proof_file
+                    ? 'bg-green-50 text-green-700 border border-green-200'
+                    : 'bg-yellow-50 text-yellow-700 border border-yellow-200'
+                }`}>
+                  {item.proof_file ? (
+                    <>✅ Proof uploaded — your contact details are visible to the finder</>
+                  ) : (
+                    <>⚠️ No proof uploaded — your name and phone are hidden from the finder</>
+                  )}
+                </div>
               </div>
-              <div></div>
+
+              {/* Action buttons */}
               <div className="flex flex-col gap-2 justify-end">
                 {item.status === 'pending' && (
                   <>
                     <button className="text-sm text-stone-500 text-center sm:min-w-48 py-2 border hover:bg-primary hover:text-white transition-all duration-300">
                       Pay Online
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleCancel(item.id)}
                       className="text-sm text-stone-500 text-center sm:min-w-48 py-2 border hover:bg-red-600 hover:text-white transition-all duration-300"
                     >
