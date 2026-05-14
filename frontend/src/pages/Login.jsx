@@ -4,322 +4,322 @@ import api from "../config/api";
 import { AppContext } from "../context/AppContext";
 
 const Login = () => {
-  const [state, setState] = useState('Login'); 
+  const [state, setState] = useState("Login");
   const [step, setStep] = useState(1);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
-  const [newPassword, setNewPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [countdown, setCountdown] = useState(0);
+
   const navigate = useNavigate();
   const { setToken, setUser } = useContext(AppContext);
 
-  const validateEmail = (email) => {
-    return email.toLowerCase().endsWith('@muj.manipal.edu');
+  const validateEmail = (email) =>
+    email.toLowerCase().endsWith("@muj.manipal.edu");
+
+  /** Returns normalised 10-digit number or null */
+  const parseIndianPhone = (raw) => {
+    const digits = raw.replace(/\D/g, "");
+    if (digits.startsWith("91") && digits.length === 12) return digits.slice(2);
+    if (digits.startsWith("0") && digits.length === 11) return digits.slice(1);
+    if (digits.length === 10) return digits;
+    return null;
   };
 
-  // Send OTP for Registration
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const startCountdown = () => {
+    setCountdown(600);
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const handleStateChange = (newState) => {
+    setState(newState);
+    setStep(1);
+    setError("");
+    setEmail("");
+    setPassword("");
+    setName("");
+    setPhone("");
+    setOtp("");
+    setNewPassword("");
+    setCountdown(0);
+  };
+
+  // ── Send OTP for Registration ───────────────────────────────────────────────
   const handleSendOTP = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     if (!validateEmail(email)) {
-      setError('Only @muj.manipal.edu email addresses are allowed');
+      setError("Only @muj.manipal.edu email addresses are allowed");
       return;
     }
-
     if (!name || name.trim().length < 2) {
-      setError('Please enter your full name');
+      setError("Please enter your full name");
       return;
     }
 
     setLoading(true);
-
     try {
       const result = await api.sendOTP({ email, name });
-
       if (result.success) {
         setStep(2);
-        setCountdown(600);
-        alert('OTP sent to your email! Please check your inbox (and spam folder).');
-        
-        const timer = setInterval(() => {
-          setCountdown(prev => {
-            if (prev <= 1) {
-              clearInterval(timer);
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
+        startCountdown();
+        alert("OTP sent to your email! Please check your inbox (and spam folder).");
       } else {
-        setError(result.message || 'Failed to send OTP');
+        setError(result.message || "Failed to send OTP");
       }
-    } catch (error) {
-      console.error('Send OTP error:', error);
-      setError('Failed to send OTP. Please try again.');
+    } catch {
+      setError("Failed to send OTP. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Verify OTP and Register
+  // ── Verify OTP and Register ─────────────────────────────────────────────────
   const handleVerifyOTP = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     if (otp.length !== 6) {
-      setError('Please enter a valid 6-digit OTP');
+      setError("Please enter a valid 6-digit OTP");
+      return;
+    }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long");
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
+    // Phone validation — required
+    const normalised = parseIndianPhone(phone);
+    if (!normalised) {
+      setError("Enter a valid 10-digit phone number.");
       return;
     }
 
     setLoading(true);
-
     try {
       const result = await api.verifyOTPAndRegister({
         email,
         otp,
         password,
-        phone
+        phone: normalised,
       });
 
       if (result.success) {
-        localStorage.setItem('token', result.token);
+        localStorage.setItem("token", result.token);
         setToken(result.token);
         setUser(result.user);
-        
-        alert('Registration successful! Welcome to UniLost.');
-        navigate('/');
+        alert("Registration successful! Welcome to UniLost.");
+        navigate("/");
       } else {
-        setError(result.message || 'Verification failed');
+        setError(result.message || "Verification failed");
       }
-    } catch (error) {
-      console.error('Verify OTP error:', error);
-      setError('Verification failed. Please try again.');
+    } catch {
+      setError("Verification failed. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Send OTP for Forgot Password
+  // ── Forgot Password ─────────────────────────────────────────────────────────
   const handleForgotPassword = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     if (!validateEmail(email)) {
-      setError('Only @muj.manipal.edu email addresses are allowed');
+      setError("Only @muj.manipal.edu email addresses are allowed");
       return;
     }
 
     setLoading(true);
-
     try {
       const result = await api.forgotPassword({ email });
-
       if (result.success) {
         setStep(2);
-        setCountdown(600);
-        alert('Password reset OTP sent to your email!');
-        
-        const timer = setInterval(() => {
-          setCountdown(prev => {
-            if (prev <= 1) {
-              clearInterval(timer);
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
+        startCountdown();
+        alert("Password reset OTP sent to your email!");
       } else {
-        setError(result.message || 'Failed to send OTP');
+        setError(result.message || "Failed to send OTP");
       }
-    } catch (error) {
-      console.error('Forgot password error:', error);
-      setError('Failed to send OTP. Please try again.');
+    } catch {
+      setError("Failed to send OTP. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Reset Password
+  // ── Reset Password ──────────────────────────────────────────────────────────
   const handleResetPassword = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     if (otp.length !== 6) {
-      setError('Please enter a valid 6-digit OTP');
+      setError("Please enter a valid 6-digit OTP");
       return;
     }
-
     if (newPassword.length < 6) {
-      setError('Password must be at least 6 characters long');
+      setError("Password must be at least 6 characters long");
       return;
     }
 
     setLoading(true);
-
     try {
-      const result = await api.resetPassword({
-        email,
-        otp,
-        newPassword
-      });
-
+      const result = await api.resetPassword({ email, otp, newPassword });
       if (result.success) {
-        alert('Password reset successful! You can now login with your new password.');
-        handleStateChange('Login');
+        alert("Password reset successful! You can now login with your new password.");
+        handleStateChange("Login");
       } else {
-        setError(result.message || 'Password reset failed');
+        setError(result.message || "Password reset failed");
       }
-    } catch (error) {
-      console.error('Reset password error:', error);
-      setError('Password reset failed. Please try again.');
+    } catch {
+      setError("Password reset failed. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Admin Login
+  // ── Admin Login ─────────────────────────────────────────────────────────────
   const handleAdminLogin = async (e) => {
     e.preventDefault();
-    setError('');
-
+    setError("");
     setLoading(true);
-
     try {
       const result = await api.adminLogin({ email, password });
-
       if (result.success) {
-        localStorage.setItem('token', result.token);
-        localStorage.setItem('isAdmin', 'true');
+        localStorage.setItem("token", result.token);
+        localStorage.setItem("isAdmin", "true");
         setToken(result.token);
         setUser(result.user);
-        
-        alert('Admin login successful!');
-        navigate('/admin');
+        alert("Admin login successful!");
+        navigate("/admin");
       } else {
-        setError(result.message || 'Admin login failed');
+        setError(result.message || "Admin login failed");
       }
-    } catch (error) {
-      console.error('Admin login error:', error);
-      setError('Admin login failed. Please try again.');
+    } catch {
+      setError("Admin login failed. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Regular Login
+  // ── Regular Login ───────────────────────────────────────────────────────────
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     if (!validateEmail(email)) {
-      setError('Only @muj.manipal.edu email addresses are allowed');
+      setError("Only @muj.manipal.edu email addresses are allowed");
       return;
     }
 
     setLoading(true);
-
     try {
       const result = await api.login({ email, password });
-
       if (result.success) {
-        localStorage.setItem('token', result.token);
+        localStorage.setItem("token", result.token);
         setToken(result.token);
         setUser(result.user);
-        
         alert(result.message);
-        navigate('/');
+        navigate("/");
       } else {
-        setError(result.message || 'Login failed');
+        setError(result.message || "Login failed");
       }
-    } catch (error) {
-      console.error('Login error:', error);
-      setError('Login failed. Please try again.');
+    } catch {
+      setError("Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Format countdown time
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  // Reset form when switching states
-  const handleStateChange = (newState) => {
-    setState(newState);
-    setStep(1);
-    setError('');
-    setEmail('');
-    setPassword('');
-    setName('');
-    setPhone('');
-    setOtp('');
-    setNewPassword('');
-    setCountdown(0);
-  };
-
+  // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <form 
-      className='min-h-[80vh] flex items-center' 
+    <form
+      className="min-h-[80vh] flex items-center"
       onSubmit={
-        state === 'Login' ? handleLogin :
-        state === 'Admin Login' ? handleAdminLogin :
-        state === 'Forgot Password' ? (step === 1 ? handleForgotPassword : handleResetPassword) :
-        (step === 1 ? handleSendOTP : handleVerifyOTP)
+        state === "Login"
+          ? handleLogin
+          : state === "Admin Login"
+          ? handleAdminLogin
+          : state === "Forgot Password"
+          ? step === 1
+            ? handleForgotPassword
+            : handleResetPassword
+          : step === 1
+          ? handleSendOTP
+          : handleVerifyOTP
       }
     >
-      <div className='flex flex-col gap-3 m-auto items-start p-8 min-w-[340px] sm:min-w-96 border rounded-xl text-zinc-600 text-sm shadow-lg'>
-        <p className='text-2xl font-semibold'>
-          {state === 'Sign Up' ? "Create Account" : 
-           state === 'Forgot Password' ? "Reset Password" : 
-           state === 'Admin Login' ? "Admin Login" : "Login"}
+      <div className="flex flex-col gap-3 m-auto items-start p-8 min-w-[340px] sm:min-w-96 border rounded-xl text-zinc-600 text-sm shadow-lg">
+
+        {/* Title */}
+        <p className="text-2xl font-semibold">
+          {state === "Sign Up"
+            ? "Create Account"
+            : state === "Forgot Password"
+            ? "Reset Password"
+            : state === "Admin Login"
+            ? "Admin Login"
+            : "Login"}
         </p>
+
+        {/* Sub-title */}
         <p>
-          {state === 'Sign Up' 
-            ? (step === 1 ? "Enter your details to get started" : "Enter the OTP sent to your email")
-            : state === 'Forgot Password'
-            ? (step === 1 ? "Enter your email to receive OTP" : "Enter OTP and new password")
-            : state === 'Admin Login'
+          {state === "Sign Up"
+            ? step === 1
+              ? "Enter your details to get started"
+              : "Enter the OTP sent to your email"
+            : state === "Forgot Password"
+            ? step === 1
+              ? "Enter your email to receive OTP"
+              : "Enter OTP and new password"
+            : state === "Admin Login"
             ? "Enter admin credentials"
             : "Please log in to access your account"}
         </p>
-        
-        {/* Error Message */}
+
+        {/* Error banner */}
         {error && (
-          <div className='w-full bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded'>
-            <p className='text-sm'>{error}</p>
+          <div className="w-full bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            <p className="text-sm">{error}</p>
           </div>
         )}
 
-        {/* Info Message (not for admin) */}
-        {state !== 'Admin Login' && (
-          <div className='w-full bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded'>
-            <p className='text-xs'>
-              <strong>Note:</strong> Only Manipal University Jaipur email addresses (@muj.manipal.edu) are allowed.
+        {/* MUJ email note */}
+        {state !== "Admin Login" && (
+          <div className="w-full bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded">
+            <p className="text-xs">
+              <strong>Note:</strong> Only Manipal University Jaipur email
+              addresses (@muj.manipal.edu) are allowed.
             </p>
           </div>
         )}
 
-        {/* Sign Up - Step 1 */}
-        {state === 'Sign Up' && step === 1 && (
+        {/* ════ SIGN UP — Step 1 ════ */}
+        {state === "Sign Up" && step === 1 && (
           <>
-            <div className='w-full'>
+            <div className="w-full">
               <p>Full Name</p>
               <input
-                className='border border-zinc-300 rounded w-full p-2 mt-1'
+                className="border border-zinc-300 rounded w-full p-2 mt-1"
                 type="text"
                 onChange={(e) => setName(e.target.value)}
                 value={name}
@@ -327,11 +327,10 @@ const Login = () => {
                 required
               />
             </div>
-
-            <div className='w-full'>
+            <div className="w-full">
               <p>Email</p>
               <input
-                className='border border-zinc-300 rounded w-full p-2 mt-1'
+                className="border border-zinc-300 rounded w-full p-2 mt-1"
                 type="email"
                 onChange={(e) => setEmail(e.target.value)}
                 value={email}
@@ -339,34 +338,35 @@ const Login = () => {
                 required
               />
             </div>
-
-            <button 
-              className='bg-primary text-white w-full py-2 rounded-md text-base disabled:opacity-50 hover:bg-opacity-90 transition-all'
+            <button
+              className="bg-primary text-white w-full py-2 rounded-md text-base disabled:opacity-50"
               disabled={loading}
               type="submit"
             >
-              {loading ? 'Sending OTP...' : 'Send OTP'}
+              {loading ? "Sending OTP..." : "Send OTP"}
             </button>
           </>
         )}
 
-        {/* Sign Up - Step 2 */}
-        {state === 'Sign Up' && step === 2 && (
+        {/* ════ SIGN UP — Step 2: OTP + Phone + Password ════ */}
+        {state === "Sign Up" && step === 2 && (
           <>
             {countdown > 0 && (
-              <div className='w-full bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded'>
-                <p className='text-sm'>
+              <div className="w-full bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
+                <p className="text-sm">
                   ⏱️ OTP expires in: <strong>{formatTime(countdown)}</strong>
                 </p>
               </div>
             )}
 
-            <div className='w-full'>
-              <p>Enter OTP (Check your email)</p>
+            <div className="w-full">
+              <p>Enter OTP (Check your inbox)</p>
               <input
-                className='border border-zinc-300 rounded w-full p-2 mt-1 text-center text-2xl tracking-widest'
+                className="border border-zinc-300 rounded w-full p-2 mt-1 text-center text-2xl tracking-widest"
                 type="text"
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                onChange={(e) =>
+                  setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
                 value={otp}
                 placeholder="000000"
                 maxLength="6"
@@ -374,10 +374,37 @@ const Login = () => {
               />
             </div>
 
-            <div className='w-full'>
+            {/* Phone — required, no OTP */}
+            <div className="w-full">
+              <p>
+                Phone Number <span className="text-red-500">*</span>
+              </p>
+              <div className="flex mt-1">
+                <span className="inline-flex items-center px-3 border border-r-0 border-zinc-300 rounded-l bg-gray-50 text-gray-500 text-sm">
+                  +91
+                </span>
+                <input
+                  className="border border-zinc-300 rounded-r w-full p-2"
+                  type="tel"
+                  onChange={(e) => {
+                    setPhone(e.target.value.replace(/\D/g, "").slice(0, 10));
+                    setError("");
+                  }}
+                  value={phone}
+                  placeholder="10-digit mobile number"
+                  maxLength="10"
+                  required
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                Indian mobile number, digits only.
+              </p>
+            </div>
+
+            <div className="w-full">
               <p>Password</p>
               <input
-                className='border border-zinc-300 rounded w-full p-2 mt-1'
+                className="border border-zinc-300 rounded w-full p-2 mt-1"
                 type="password"
                 onChange={(e) => setPassword(e.target.value)}
                 value={password}
@@ -387,42 +414,30 @@ const Login = () => {
               />
             </div>
 
-            <div className='w-full'>
-              <p>Phone (Optional)</p>
-              <input
-                className='border border-zinc-300 rounded w-full p-2 mt-1'
-                type="tel"
-                onChange={(e) => setPhone(e.target.value)}
-                value={phone}
-                placeholder="+91 1234567890"
-              />
-            </div>
-
-            <button 
-              className='bg-primary text-white w-full py-2 rounded-md text-base disabled:opacity-50 hover:bg-opacity-90 transition-all'
+            <button
+              className="bg-primary text-white w-full py-2 rounded-md text-base disabled:opacity-50"
               disabled={loading || countdown === 0}
               type="submit"
             >
-              {loading ? 'Verifying...' : 'Verify & Create Account'}
+              {loading ? "Creating account..." : "Create Account"}
             </button>
-
-            <button 
+            <button
               type="button"
               onClick={() => setStep(1)}
-              className='text-primary underline cursor-pointer text-sm'
+              className="text-primary underline cursor-pointer text-sm"
             >
               ← Back to enter email
             </button>
           </>
         )}
 
-        {/* Forgot Password - Step 1 */}
-        {state === 'Forgot Password' && step === 1 && (
+        {/* ════ FORGOT PASSWORD — Step 1 ════ */}
+        {state === "Forgot Password" && step === 1 && (
           <>
-            <div className='w-full'>
+            <div className="w-full">
               <p>Email</p>
               <input
-                className='border border-zinc-300 rounded w-full p-2 mt-1'
+                className="border border-zinc-300 rounded w-full p-2 mt-1"
                 type="email"
                 onChange={(e) => setEmail(e.target.value)}
                 value={email}
@@ -430,53 +445,51 @@ const Login = () => {
                 required
               />
             </div>
-
-            <button 
-              className='bg-primary text-white w-full py-2 rounded-md text-base disabled:opacity-50 hover:bg-opacity-90 transition-all'
+            <button
+              className="bg-primary text-white w-full py-2 rounded-md text-base disabled:opacity-50"
               disabled={loading}
               type="submit"
             >
-              {loading ? 'Sending OTP...' : 'Send Reset OTP'}
+              {loading ? "Sending OTP..." : "Send Reset OTP"}
             </button>
-
-            <button 
+            <button
               type="button"
-              onClick={() => handleStateChange('Login')}
-              className='text-primary underline cursor-pointer text-sm'
+              onClick={() => handleStateChange("Login")}
+              className="text-primary underline cursor-pointer text-sm"
             >
               ← Back to login
             </button>
           </>
         )}
 
-        {/* Forgot Password - Step 2 */}
-        {state === 'Forgot Password' && step === 2 && (
+        {/* ════ FORGOT PASSWORD — Step 2 ════ */}
+        {state === "Forgot Password" && step === 2 && (
           <>
             {countdown > 0 && (
-              <div className='w-full bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded'>
-                <p className='text-sm'>
+              <div className="w-full bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
+                <p className="text-sm">
                   ⏱️ OTP expires in: <strong>{formatTime(countdown)}</strong>
                 </p>
               </div>
             )}
-
-            <div className='w-full'>
+            <div className="w-full">
               <p>Enter OTP (Check your email)</p>
               <input
-                className='border border-zinc-300 rounded w-full p-2 mt-1 text-center text-2xl tracking-widest'
+                className="border border-zinc-300 rounded w-full p-2 mt-1 text-center text-2xl tracking-widest"
                 type="text"
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                onChange={(e) =>
+                  setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
                 value={otp}
                 placeholder="000000"
                 maxLength="6"
                 required
               />
             </div>
-
-            <div className='w-full'>
+            <div className="w-full">
               <p>New Password</p>
               <input
-                className='border border-zinc-300 rounded w-full p-2 mt-1'
+                className="border border-zinc-300 rounded w-full p-2 mt-1"
                 type="password"
                 onChange={(e) => setNewPassword(e.target.value)}
                 value={newPassword}
@@ -485,38 +498,35 @@ const Login = () => {
                 minLength="6"
               />
             </div>
-
-            <button 
-              className='bg-primary text-white w-full py-2 rounded-md text-base disabled:opacity-50 hover:bg-opacity-90 transition-all'
+            <button
+              className="bg-primary text-white w-full py-2 rounded-md text-base disabled:opacity-50"
               disabled={loading || countdown === 0}
               type="submit"
             >
-              {loading ? 'Resetting...' : 'Reset Password'}
+              {loading ? "Resetting..." : "Reset Password"}
             </button>
-
-            <button 
+            <button
               type="button"
               onClick={() => setStep(1)}
-              className='text-primary underline cursor-pointer text-sm'
+              className="text-primary underline cursor-pointer text-sm"
             >
               ← Back to enter email
             </button>
           </>
         )}
 
-        {/* Admin Login Form */}
-        {state === 'Admin Login' && (
+        {/* ════ ADMIN LOGIN ════ */}
+        {state === "Admin Login" && (
           <>
-            <div className='w-full bg-orange-50 border border-orange-200 text-orange-700 px-4 py-3 rounded'>
-              <p className='text-xs'>
+            <div className="w-full bg-orange-50 border border-orange-200 text-orange-700 px-4 py-3 rounded">
+              <p className="text-xs">
                 <strong>⚠️ Admin Access:</strong> For authorized personnel only.
               </p>
             </div>
-
-            <div className='w-full'>
+            <div className="w-full">
               <p>Admin Email</p>
               <input
-                className='border border-zinc-300 rounded w-full p-2 mt-1'
+                className="border border-zinc-300 rounded w-full p-2 mt-1"
                 type="email"
                 onChange={(e) => setEmail(e.target.value)}
                 value={email}
@@ -524,11 +534,10 @@ const Login = () => {
                 required
               />
             </div>
-
-            <div className='w-full'>
+            <div className="w-full">
               <p>Admin Password</p>
               <input
-                className='border border-zinc-300 rounded w-full p-2 mt-1'
+                className="border border-zinc-300 rounded w-full p-2 mt-1"
                 type="password"
                 onChange={(e) => setPassword(e.target.value)}
                 value={password}
@@ -536,32 +545,30 @@ const Login = () => {
                 required
               />
             </div>
-
-            <button 
-              className='bg-orange-600 text-white w-full py-2 rounded-md text-base disabled:opacity-50 hover:bg-opacity-90 transition-all'
+            <button
+              className="bg-orange-600 text-white w-full py-2 rounded-md text-base disabled:opacity-50"
               disabled={loading}
               type="submit"
             >
-              {loading ? 'Logging in...' : 'Admin Login'}
+              {loading ? "Logging in..." : "Admin Login"}
             </button>
-
-            <button 
+            <button
               type="button"
-              onClick={() => handleStateChange('Login')}
-              className='text-primary underline cursor-pointer text-sm'
+              onClick={() => handleStateChange("Login")}
+              className="text-primary underline cursor-pointer text-sm"
             >
               ← Back to user login
             </button>
           </>
         )}
 
-        {/* Regular Login Form */}
-        {state === 'Login' && (
+        {/* ════ REGULAR LOGIN ════ */}
+        {state === "Login" && (
           <>
-            <div className='w-full'>
+            <div className="w-full">
               <p>Email</p>
               <input
-                className='border border-zinc-300 rounded w-full p-2 mt-1'
+                className="border border-zinc-300 rounded w-full p-2 mt-1"
                 type="email"
                 onChange={(e) => setEmail(e.target.value)}
                 value={email}
@@ -569,11 +576,10 @@ const Login = () => {
                 required
               />
             </div>
-
-            <div className='w-full'>
+            <div className="w-full">
               <p>Password</p>
               <input
-                className='border border-zinc-300 rounded w-full p-2 mt-1'
+                className="border border-zinc-300 rounded w-full p-2 mt-1"
                 type="password"
                 onChange={(e) => setPassword(e.target.value)}
                 value={password}
@@ -581,55 +587,52 @@ const Login = () => {
                 required
               />
             </div>
-
-            <button 
+            <button
               type="button"
-              onClick={() => handleStateChange('Forgot Password')}
-              className='text-primary underline cursor-pointer text-xs self-end'
+              onClick={() => handleStateChange("Forgot Password")}
+              className="text-primary underline cursor-pointer text-xs self-end"
             >
               Forgot Password?
             </button>
-
-            <button 
-              className='bg-primary text-white w-full py-2 rounded-md text-base disabled:opacity-50 hover:bg-opacity-90 transition-all'
+            <button
+              className="bg-primary text-white w-full py-2 rounded-md text-base disabled:opacity-50"
               disabled={loading}
               type="submit"
             >
-              {loading ? 'Logging in...' : 'Login'}
+              {loading ? "Logging in..." : "Login"}
             </button>
-
-            <button 
+            <button
               type="button"
-              onClick={() => handleStateChange('Admin Login')}
-              className='w-full text-orange-600 underline cursor-pointer text-sm'
+              onClick={() => handleStateChange("Admin Login")}
+              className="w-full text-orange-600 underline cursor-pointer text-sm"
             >
               🔐 Admin Login
             </button>
           </>
         )}
 
-        {/* Toggle between States */}
+        {/* Toggle Sign Up / Login */}
         {state === "Sign Up" ? (
           <p>
             Already have an account?
             <span
-              onClick={() => handleStateChange('Login')}
-              className='text-primary underline cursor-pointer ml-1'
+              onClick={() => handleStateChange("Login")}
+              className="text-primary underline cursor-pointer ml-1"
             >
               Login here
             </span>
           </p>
-        ) : state === "Login" && (
+        ) : state === "Login" ? (
           <p>
             Create a new account?
             <span
-              onClick={() => handleStateChange('Sign Up')}
-              className='text-primary underline cursor-pointer ml-1'
+              onClick={() => handleStateChange("Sign Up")}
+              className="text-primary underline cursor-pointer ml-1"
             >
               Click here
             </span>
           </p>
-        )}
+        ) : null}
       </div>
     </form>
   );

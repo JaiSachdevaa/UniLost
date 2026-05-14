@@ -1,11 +1,7 @@
 const API_BASE_URL = 'http://localhost:5000/api';
 
-// Get token from localStorage
-const getToken = () => {
-  return localStorage.getItem('token');
-};
+const getToken = () => localStorage.getItem('token');
 
-// API Service
 export const api = {
   // ========== Auth Endpoints ==========
 
@@ -65,9 +61,7 @@ export const api = {
 
   getCurrentUser: async () => {
     const response = await fetch(`${API_BASE_URL}/auth/me`, {
-      headers: {
-        Authorization: `Bearer ${getToken()}`,
-      },
+      headers: { Authorization: `Bearer ${getToken()}` },
     });
     return response.json();
   },
@@ -88,18 +82,14 @@ export const api = {
 
   getPendingReports: async () => {
     const response = await fetch(`${API_BASE_URL}/admin/reports/pending`, {
-      headers: {
-        Authorization: `Bearer ${getToken()}`,
-      },
+      headers: { Authorization: `Bearer ${getToken()}` },
     });
     return response.json();
   },
 
   getAllReports: async () => {
     const response = await fetch(`${API_BASE_URL}/admin/reports/all`, {
-      headers: {
-        Authorization: `Bearer ${getToken()}`,
-      },
+      headers: { Authorization: `Bearer ${getToken()}` },
     });
     return response.json();
   },
@@ -170,7 +160,6 @@ export const api = {
     Object.keys(data).forEach((key) => {
       if (data[key]) formData.append(key, data[key]);
     });
-
     const response = await fetch(`${API_BASE_URL}/items`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${getToken()}` },
@@ -186,7 +175,6 @@ export const api = {
     Object.keys(data).forEach((key) => {
       if (data[key]) formData.append(key, data[key]);
     });
-
     const response = await fetch(`${API_BASE_URL}/appointments`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${getToken()}` },
@@ -219,27 +207,25 @@ export const api = {
     return response.json();
   },
 
+  // FIXED: was sending FormData with if(data[key]) filter — empty string values
+  // like gender/dob were silently dropped. Now sends JSON so all fields are
+  // always included, even when empty.
   updateProfile: async (data) => {
-    const formData = new FormData();
-    Object.keys(data).forEach((key) => {
-      if (data[key]) formData.append(key, data[key]);
-    });
-
     const response = await fetch(`${API_BASE_URL}/users/profile`, {
       method: 'PUT',
-      headers: { Authorization: `Bearer ${getToken()}` },
-      body: formData,
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
     });
     return response.json();
   },
 
-  // ✅ NEW — Update Profile Image
   updateProfileImage: async (formData) => {
     const response = await fetch(`${API_BASE_URL}/users/profile/image`, {
       method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${getToken()}`,
-      },
+      headers: { Authorization: `Bearer ${getToken()}` },
       body: formData,
     });
     return response.json();
@@ -262,11 +248,17 @@ export const api = {
     Object.keys(data).forEach((key) => {
       if (data[key]) formData.append(key, data[key]);
     });
-
     const response = await fetch(`${API_BASE_URL}/users/report`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${getToken()}` },
       body: formData,
+    });
+    return response.json();
+  },
+
+  getUserReports: async () => {
+    const response = await fetch(`${API_BASE_URL}/users/reports`, {
+      headers: { Authorization: `Bearer ${getToken()}` },
     });
     return response.json();
   },
