@@ -9,7 +9,7 @@ import MyAppointments from './pages/MyAppointments';
 import MyReportedItems from './pages/MyReportedItems';
 import Appointments from './pages/Appointment';
 import Report from './pages/Report';
-import Admin from './pages/Admin';
+import Admin from './pages/admin';
 import ApproveRequests from './pages/ApproveRequests';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
