@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const db = require('./database');
@@ -13,36 +14,49 @@ const adminRoutes = require('./routes/admin');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors());
+// ── CORS ──────────────────────────────────────────────────────────────────────
+// Allows both local dev and your Vercel frontend
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  process.env.FRONTEND_URL,         // set this on Render to your Vercel URL
+].filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, Render health checks)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS blocked: ${origin}`));
+  },
+  credentials: true,
+}));
+
+// ── Middleware ────────────────────────────────────────────────────────────────
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ Serve uploads folder publicly
-// (ensures images from /uploads/profiles and /uploads/reports load in browser)
+// ── Serve uploaded files ──────────────────────────────────────────────────────
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ✅ Optional: handle non-existing upload subfolders gracefully
-// This ensures `uploads/profiles` and `uploads/reports` exist before file operations.
-const fs = require('fs');
-const uploadDirs = ['uploads', 'uploads/profiles', 'uploads/reports'];
-uploadDirs.forEach((dir) => {
+// Ensure upload directories exist on startup
+['uploads', 'uploads/profiles', 'uploads/reports', 'uploads/proofs', 'uploads/items'].forEach((dir) => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
-// API routes
-app.use('/api/auth', authRoutes);
-app.use('/api/items', itemRoutes);
+// ── API Routes ────────────────────────────────────────────────────────────────
+app.use('/api/auth',         authRoutes);
+app.use('/api/items',        itemRoutes);
 app.use('/api/appointments', appointmentRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/admin', adminRoutes);
+app.use('/api/users',        userRoutes);
+app.use('/api/admin',        adminRoutes);
 
-// Health check route
+// ── Health check (used by UptimeRobot to keep Render awake) ──────────────────
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'UniLost API is running' });
 });
 
-// Global error handler
+// ── Global error handler ──────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({
@@ -52,14 +66,13 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Initialize DB and start server
+// ── Start ─────────────────────────────────────────────────────────────────────
 db.initializeDatabase()
   .then(() => {
     app.listen(PORT, () => {
-      console.log(`🚀 UniLost Backend Server running on port ${PORT}`);
-      console.log(`📍 API endpoint: http://localhost:${PORT}/api`);
-      console.log(`👤 Admin: ${process.env.ADMIN_EMAIL || 'admin@muj.manipal.edu'}`);
-      console.log(`📂 Serving uploads from: ${path.join(__dirname, 'uploads')}`);
+      console.log(`🚀 UniLost Backend running on port ${PORT}`);
+      console.log(`📍 API: http://localhost:${PORT}/api`);
+      console.log(`🌐 Allowed origins: ${allowedOrigins.join(', ')}`);
     });
   })
   .catch((err) => {

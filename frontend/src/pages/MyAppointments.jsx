@@ -4,6 +4,7 @@ import api from "../config/api";
 const MyAppointments = () => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const isAdmin = localStorage.getItem('isAdmin') === 'true';
 
   useEffect(() => {
     const fetchAppointments = async () => {
@@ -21,25 +22,39 @@ const MyAppointments = () => {
     fetchAppointments();
   }, []);
 
-  const handleCancel = async (id) => {
-    if (window.confirm('Are you sure you want to cancel this appointment?')) {
-      try {
-        const result = await api.cancelAppointment(id);
-        if (result.success) {
-          alert('Appointment cancelled successfully');
-          setAppointments(appointments.filter(apt => apt.id !== id));
-        } else {
-          alert(result.message || 'Failed to cancel appointment');
-        }
-      } catch {
-        alert('Failed to cancel appointment');
+  // User deletes their own appointment (hard delete)
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this appointment? This cannot be undone.')) return;
+    try {
+      const result = await api.deleteAppointment(id);
+      if (result.success) {
+        alert('Appointment deleted successfully');
+        setAppointments(prev => prev.filter(apt => apt.id !== id));
+      } else {
+        alert(result.message || 'Failed to delete appointment');
       }
+    } catch {
+      alert('Failed to delete appointment');
     }
   };
 
-  if (loading) {
-    return <div className="text-center py-10">Loading appointments...</div>;
-  }
+  // Admin deletes any appointment
+  const handleAdminDelete = async (id) => {
+    if (!window.confirm('Admin: permanently delete this appointment?')) return;
+    try {
+      const result = await api.deleteAppointmentAdmin(id);
+      if (result.success) {
+        alert('Appointment deleted by admin');
+        setAppointments(prev => prev.filter(apt => apt.id !== id));
+      } else {
+        alert(result.message || 'Failed to delete appointment');
+      }
+    } catch {
+      alert('Failed to delete appointment');
+    }
+  };
+
+  if (loading) return <div className="text-center py-10">Loading appointments...</div>;
 
   return (
     <div>
@@ -63,7 +78,7 @@ const MyAppointments = () => {
                 />
               </div>
 
-              {/* Item + appointment details */}
+              {/* Details */}
               <div className="flex-1 text-sm text-zinc-600">
                 <p className="text-neutral-800 font-semibold">{item.item_name}</p>
                 <p>{item.speciality}</p>
@@ -86,34 +101,72 @@ const MyAppointments = () => {
                   </span>
                 </p>
 
-                {/* FEATURE 4: Privacy notice — proof upload status */}
+                {/* Proof upload status */}
                 <div className={`mt-2 px-3 py-2 rounded text-xs inline-flex items-center gap-1 ${
                   item.proof_file
                     ? 'bg-green-50 text-green-700 border border-green-200'
                     : 'bg-yellow-50 text-yellow-700 border border-yellow-200'
                 }`}>
-                  {item.proof_file ? (
-                    <>✅ Proof uploaded — your contact details are visible to the finder</>
+                  {item.proof_file
+                    ? <>✅ Proof uploaded — your contact details are visible to the finder</>
+                    : <>⚠️ No proof uploaded — your name and phone are hidden from the finder</>}
+                </div>
+
+                {/* ── Finder contact details ── */}
+                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-xs font-semibold text-blue-800 mb-1">
+                    📋 Finder Contact Details
+                  </p>
+                  {item.finder_name ? (
+                    <div className="space-y-0.5">
+                      <p className="text-xs text-blue-700">
+                        <span className="font-medium">Name:</span>{' '}
+                        {item.finder_name}
+                      </p>
+                      <p className="text-xs text-blue-700">
+                        <span className="font-medium">Email:</span>{' '}
+                        <a
+                          href={`mailto:${item.finder_email}`}
+                          className="underline hover:text-blue-900"
+                        >
+                          {item.finder_email}
+                        </a>
+                      </p>
+                      <p className="text-xs text-blue-700">
+                        <span className="font-medium">Phone:</span>{' '}
+                        {item.finder_phone || 'Not provided'}
+                      </p>
+                    </div>
                   ) : (
-                    <>⚠️ No proof uploaded — your name and phone are hidden from the finder</>
+                    <p className="text-xs text-blue-500 italic">
+                      Finder information not available
+                    </p>
                   )}
                 </div>
               </div>
 
               {/* Action buttons */}
-              <div className="flex flex-col gap-2 justify-end">
-                {item.status === 'pending' && (
-                  <>
-                    <button className="text-sm text-stone-500 text-center sm:min-w-48 py-2 border hover:bg-primary hover:text-white transition-all duration-300">
-                      Pay Online
-                    </button>
-                    <button
-                      onClick={() => handleCancel(item.id)}
-                      className="text-sm text-stone-500 text-center sm:min-w-48 py-2 border hover:bg-red-600 hover:text-white transition-all duration-300"
-                    >
-                      Cancel Appointment
-                    </button>
-                  </>
+              <div className="flex flex-col gap-2 justify-end min-w-[160px]">
+                <button className="text-sm text-stone-500 text-center sm:min-w-48 py-2 border hover:bg-primary hover:text-white transition-all duration-300">
+                  Pay Online
+                </button>
+
+                {/* User: delete own appointment */}
+                <button
+                  onClick={() => handleDelete(item.id)}
+                  className="text-sm text-stone-500 text-center sm:min-w-48 py-2 border hover:bg-red-600 hover:text-white transition-all duration-300"
+                >
+                  Delete Appointment
+                </button>
+
+                {/* Admin only: delete any appointment */}
+                {isAdmin && (
+                  <button
+                    onClick={() => handleAdminDelete(item.id)}
+                    className="text-sm text-red-600 font-semibold text-center sm:min-w-48 py-2 border border-red-400 hover:bg-red-600 hover:text-white transition-all duration-300"
+                  >
+                    🗑 Admin Delete
+                  </button>
                 )}
               </div>
             </div>

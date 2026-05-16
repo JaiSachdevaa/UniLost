@@ -8,15 +8,11 @@ const { authenticateToken } = require('./auth');
 
 const router = express.Router();
 
-// ========== Multer Configurations ==========
-
-// Profile upload storage
+// ── Multer: profile images ────────────────────────────────────────────────────
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadDir = 'uploads/profiles';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
+    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
@@ -25,13 +21,11 @@ const storage = multer.diskStorage({
   },
 });
 
-// Report upload storage
+// ── Multer: report media ──────────────────────────────────────────────────────
 const reportStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadDir = 'uploads/reports';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
+    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
@@ -63,18 +57,14 @@ const reportUpload = multer({
   },
 });
 
-// ========== Routes ==========
-
-// Get profile
+// ── GET /profile ──────────────────────────────────────────────────────────────
 router.get('/profile', authenticateToken, async (req, res) => {
   try {
     const user = await getOne(
       'SELECT id, name, email, phone, address_line1, address_line2, gender, dob, profile_image FROM users WHERE id = ?',
       [req.user.userId]
     );
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     res.json({ success: true, user });
   } catch (error) {
     console.error('Get profile error:', error);
@@ -82,77 +72,69 @@ router.get('/profile', authenticateToken, async (req, res) => {
   }
 });
 
-// Update profile details
+// ── PUT /profile ──────────────────────────────────────────────────────────────
 router.put('/profile', authenticateToken, async (req, res) => {
   try {
     const { name, phone, address_line1, address_line2, gender, dob } = req.body;
     const user = await getOne('SELECT * FROM users WHERE id = ?', [req.user.userId]);
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
     await runQuery(
-      `UPDATE users 
-       SET name = ?, phone = ?, address_line1 = ?, address_line2 = ?, 
+      `UPDATE users
+       SET name = ?, phone = ?, address_line1 = ?, address_line2 = ?,
            gender = ?, dob = ?, updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`,
       [name || user.name, phone, address_line1, address_line2, gender, dob, req.user.userId]
     );
+
     const updatedUser = await getOne(
       'SELECT id, name, email, phone, address_line1, address_line2, gender, dob, profile_image FROM users WHERE id = ?',
       [req.user.userId]
     );
-    res.json({
-      success: true,
-      message: 'Profile updated successfully',
-      user: updatedUser,
-    });
+    res.json({ success: true, message: 'Profile updated successfully', user: updatedUser });
   } catch (error) {
     console.error('Update profile error:', error);
     res.status(500).json({ success: false, message: 'Failed to update profile' });
   }
 });
 
-// Upload / change profile image
+// ── PUT /profile/image ────────────────────────────────────────────────────────
 router.put('/profile/image', authenticateToken, upload.single('profile_image'), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No image uploaded' });
-    }
+    if (!req.file) return res.status(400).json({ success: false, message: 'No image uploaded' });
+
     const user = await getOne('SELECT profile_image FROM users WHERE id = ?', [req.user.userId]);
     const newImagePath = `/uploads/profiles/${req.file.filename}`;
-    // Delete old profile image if it exists
+
     if (user && user.profile_image && fs.existsSync(`.${user.profile_image}`)) {
       fs.unlinkSync(`.${user.profile_image}`);
     }
+
     await runQuery('UPDATE users SET profile_image = ? WHERE id = ?', [newImagePath, req.user.userId]);
-    res.json({
-      success: true,
-      message: 'Profile image updated successfully',
-      profile_image: newImagePath,
-    });
+    res.json({ success: true, message: 'Profile image updated successfully', profile_image: newImagePath });
   } catch (error) {
     console.error('Profile image upload error:', error);
     res.status(500).json({ success: false, message: 'Error uploading image' });
   }
 });
 
-// Change password
+// ── PUT /change-password ──────────────────────────────────────────────────────
 router.put('/change-password', authenticateToken, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    if (!currentPassword || !newPassword) {
+    if (!currentPassword || !newPassword)
       return res.status(400).json({ success: false, message: 'Current and new passwords required' });
-    }
+
     const user = await getOne('SELECT * FROM users WHERE id = ?', [req.user.userId]);
     const isValidPassword = await bcrypt.compare(currentPassword, user.password);
-    if (!isValidPassword) {
+    if (!isValidPassword)
       return res.status(401).json({ success: false, message: 'Incorrect current password' });
-    }
+
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await runQuery('UPDATE users SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [
-      hashedPassword,
-      req.user.userId,
-    ]);
+    await runQuery(
+      'UPDATE users SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [hashedPassword, req.user.userId]
+    );
     res.json({ success: true, message: 'Password changed successfully' });
   } catch (error) {
     console.error('Change password error:', error);
@@ -160,8 +142,7 @@ router.put('/change-password', authenticateToken, async (req, res) => {
   }
 });
 
-// Submit found item report
-// CHANGED: image (media) is now REQUIRED — reject request if no image is uploaded
+// ── POST /report — submit a found-item report ─────────────────────────────────
 router.post('/report', authenticateToken, reportUpload.single('media'), async (req, res) => {
   try {
     const { item_type, location, time_found, description } = req.body;
@@ -170,13 +151,31 @@ router.post('/report', authenticateToken, reportUpload.single('media'), async (r
       return res.status(400).json({ success: false, message: 'All fields are required' });
     }
 
-    // NEW: Validate that an image was uploaded
+    // Image is mandatory
     if (!req.file) {
       return res.status(400).json({
         success: false,
         message: 'Please upload an image of the lost item before submitting.',
       });
     }
+
+    // ── Limit: max 5 reports per user per calendar day ────────────────────────
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const todayCount = await getOne(
+      `SELECT COUNT(*) as count
+       FROM reports
+       WHERE user_id = ?
+         AND DATE(created_at) = ?`,
+      [req.user.userId, today]
+    );
+
+    if (todayCount && todayCount.count >= 5) {
+      return res.status(429).json({
+        success: false,
+        message: 'You have reached the maximum limit of 5 reports for today.',
+      });
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     const mediaPath = `/uploads/reports/${req.file.filename}`;
 
@@ -196,12 +195,13 @@ router.post('/report', authenticateToken, reportUpload.single('media'), async (r
   }
 });
 
-// Get user's own reports
+// ── GET /reports — user's own reports ────────────────────────────────────────
 router.get('/reports', authenticateToken, async (req, res) => {
   try {
-    const reports = await getAll('SELECT * FROM reports WHERE user_id = ? ORDER BY created_at DESC', [
-      req.user.userId,
-    ]);
+    const reports = await getAll(
+      'SELECT * FROM reports WHERE user_id = ? ORDER BY created_at DESC',
+      [req.user.userId]
+    );
     res.json({ success: true, count: reports.length, reports });
   } catch (error) {
     console.error('Get reports error:', error);

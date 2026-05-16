@@ -17,8 +17,6 @@ const Navbar = () => {
 
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
 
-  // Resolve profile picture: use the user's uploaded image if available,
-  // otherwise fall back to the default asset
   const profilePicSrc =
     user && user.profile_image
       ? `http://localhost:5000${user.profile_image}`
@@ -33,20 +31,16 @@ const Navbar = () => {
         alt='logo'
       />
 
-      {/* Desktop Menu */}
+      {/* Desktop Nav */}
       <ul className='hidden md:flex items-start gap-5 font-semibold'>
         <NavLink to='/'><li className='py-1'>HOME</li></NavLink>
         <NavLink to='/doctors'><li className='py-1'>ALL ITEMS</li></NavLink>
         <NavLink to='/report'><li className='py-1'>REPORT ITEMS</li></NavLink>
-
         {isAdmin && (
           <NavLink to='/approve-requests'>
-            <li className='py-1 text-red-600 hover:text-red-700 font-bold'>
-              APPROVE REQUESTS
-            </li>
+            <li className='py-1 text-red-600 hover:text-red-700 font-bold'>APPROVE REQUESTS</li>
           </NavLink>
         )}
-
         <NavLink to='/about'><li className='py-1'>ABOUT</li></NavLink>
         <NavLink to='/contact'><li className='py-1'>CONTACT</li></NavLink>
       </ul>
@@ -55,7 +49,6 @@ const Navbar = () => {
       <div className='flex items-center gap-4'>
         {token ? (
           <div className='flex items-center gap-2 cursor-pointer group relative'>
-            {/* FIXED: show actual user profile picture */}
             <img
               className='w-10 h-10 rounded-full object-cover border border-gray-200'
               src={profilePicSrc}
@@ -70,6 +63,10 @@ const Navbar = () => {
                 </p>
                 <p onClick={() => navigate('my-appointments')} className='hover:text-black cursor-pointer'>
                   My Appointments
+                </p>
+                {/* NEW: Reported Items link */}
+                <p onClick={() => navigate('my-reported-items')} className='hover:text-black cursor-pointer'>
+                  Reported Items
                 </p>
                 {isAdmin && (
                   <p onClick={() => navigate('/admin')} className='hover:text-black cursor-pointer'>
