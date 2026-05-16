@@ -1,19 +1,18 @@
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
-// Create transporter using explicit SMTP settings instead of 'service: gmail'
-// This fixes Connection timeout errors on Render and other cloud hosts
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
-  port: 465,
-  secure: true, // SSL
+  port: 587,
+  secure: false,
+  requireTLS: true,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
-  connectionTimeout: 30000,
+  connectionTimeout: 60000,
   greetingTimeout: 30000,
-  socketTimeout: 30000,
+  socketTimeout: 60000,
 });
 
 // Verify connection on startup
