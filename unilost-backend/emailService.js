@@ -1,19 +1,25 @@
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
-// Create transporter
+// Create transporter using explicit SMTP settings instead of 'service: gmail'
+// This fixes Connection timeout errors on Render and other cloud hosts
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true, // SSL
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
+    pass: process.env.EMAIL_PASS,
+  },
+  connectionTimeout: 30000,
+  greetingTimeout: 30000,
+  socketTimeout: 30000,
 });
 
-// Verify connection
+// Verify connection on startup
 transporter.verify((error, success) => {
   if (error) {
-    console.error('❌ Email service error:', error);
+    console.error('❌ Email service error:', error.message);
   } else {
     console.log('✅ Email service ready');
   }
@@ -22,7 +28,7 @@ transporter.verify((error, success) => {
 // Send OTP email for registration
 const sendOTPEmail = async (email, otp) => {
   const mailOptions = {
-    from: process.env.EMAIL_FROM || 'UniLost <noreply@unilost.com>',
+    from: process.env.EMAIL_FROM || `UniLost <${process.env.EMAIL_USER}>`,
     to: email,
     subject: 'UniLost - Email Verification OTP',
     html: `
@@ -48,18 +54,15 @@ const sendOTPEmail = async (email, otp) => {
             <p>Hello,</p>
             <p>Thank you for registering with <strong>UniLost</strong> - Manipal University Jaipur's Lost & Found System.</p>
             <p>Please use the following OTP to verify your email address:</p>
-            
             <div class="otp-box">
               <div class="otp-code">${otp}</div>
             </div>
-            
             <p><strong>Important:</strong></p>
             <ul>
               <li>This OTP is valid for <strong>10 minutes</strong></li>
               <li>Do not share this OTP with anyone</li>
               <li>If you didn't request this, please ignore this email</li>
             </ul>
-            
             <p>Best regards,<br><strong>UniLost Team</strong></p>
           </div>
           <div class="footer">
@@ -77,7 +80,7 @@ const sendOTPEmail = async (email, otp) => {
     console.log('✅ OTP email sent:', info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('❌ Error sending OTP email:', error);
+    console.error('❌ Error sending OTP email:', error.message);
     throw error;
   }
 };
@@ -85,7 +88,7 @@ const sendOTPEmail = async (email, otp) => {
 // Send password reset OTP email
 const sendPasswordResetEmail = async (email, otp) => {
   const mailOptions = {
-    from: process.env.EMAIL_FROM || 'UniLost <noreply@unilost.com>',
+    from: process.env.EMAIL_FROM || `UniLost <${process.env.EMAIL_USER}>`,
     to: email,
     subject: 'UniLost - Password Reset OTP',
     html: `
@@ -112,21 +115,18 @@ const sendPasswordResetEmail = async (email, otp) => {
             <p>Hello,</p>
             <p>We received a request to reset your password for your <strong>UniLost</strong> account.</p>
             <p>Please use the following OTP to reset your password:</p>
-            
             <div class="otp-box">
               <div class="otp-code">${otp}</div>
             </div>
-            
             <div class="warning">
               <p style="margin: 0;"><strong>⚠️ Security Alert:</strong></p>
               <ul style="margin: 10px 0 0 0; padding-left: 20px;">
                 <li>This OTP is valid for <strong>10 minutes</strong></li>
                 <li>Never share this OTP with anyone</li>
-                <li>If you didn't request this, please ignore this email and your password will remain unchanged</li>
-                <li>For security, change your password immediately if you suspect unauthorized access</li>
+                <li>If you didn't request this, please ignore this email</li>
+                <li>Change your password immediately if you suspect unauthorized access</li>
               </ul>
             </div>
-            
             <p>Best regards,<br><strong>UniLost Team</strong></p>
           </div>
           <div class="footer">
@@ -144,7 +144,7 @@ const sendPasswordResetEmail = async (email, otp) => {
     console.log('✅ Password reset email sent:', info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('❌ Error sending password reset email:', error);
+    console.error('❌ Error sending password reset email:', error.message);
     throw error;
   }
 };
